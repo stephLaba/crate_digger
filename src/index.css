@@ -69,4 +69,30 @@
     text-transform: uppercase;
     color: hsl(var(--muted-foreground));
   }
+
+  /* persistent underline that retracts to the right, then regrows from the right on hover */
+  .hover-underline {
+    position: relative;
+    display: inline-block;
+  }
+  .hover-underline::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -3px;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(1);
+    transform-origin: right center;
+  }
+  .hover-underline:hover::after {
+    animation: underline-rtl 0.55s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  @keyframes underline-rtl {
+    0% { transform: scaleX(1); }
+    48% { transform: scaleX(0); }
+    52% { transform: scaleX(0); }
+    100% { transform: scaleX(1); }
+  }
 }

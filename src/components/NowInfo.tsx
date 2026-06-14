@@ -25,19 +25,18 @@ export function NowInfo({ current, show, onOpen }: { current: RecInfo | null; sh
           exit={{ opacity: 0, x: "-50%", y: "-50%", filter: "blur(12px)" }}
           transition={{ duration: 0.5, ease: [0.2, 0.7, 0.2, 1] }}
         >
-          <div className="text-[13px] font-bold uppercase tracking-[0.28em]" style={{ color: "hsl(var(--accent))" }}>
-            {current.yearLabel}
-          </div>
+          <div className="text-[13px] uppercase leading-[1.7] tracking-[0.03em] text-foreground">{current.yearLabel}</div>
           <h2 className="mt-3 font-display uppercase text-foreground" style={{ fontSize: "clamp(42px, 7.5vw, 92px)" }}>
             <StaggerWords text={current.album} stagger={0.06} />
           </h2>
-          <div className="mt-3 text-base text-foreground/70">{current.artist}</div>
-          <div className="mt-4 text-[11px] uppercase tracking-[0.3em] text-muted">{current.era}</div>
-          {current.note && <div className="mx-auto mt-3 max-w-[460px] text-[13px] italic text-muted">{current.note}</div>}
+          <div className="mt-3 text-[13px] uppercase leading-[1.7] tracking-[0.03em] text-foreground">{current.artist}</div>
+          <div className="mt-3 text-[13px] uppercase leading-[1.7] tracking-[0.03em] text-foreground">{current.era}</div>
+          {current.note && (
+            <div className="mx-auto mt-3 max-w-[480px] text-[13px] uppercase leading-[1.7] tracking-[0.03em] text-foreground">{current.note}</div>
+          )}
           {!current.isPlaceholder && (
             <button
-              className="pointer-events-auto mt-5 text-[11px] uppercase tracking-[0.1em] underline-offset-4 transition-opacity hover:underline"
-              style={{ color: "hsl(var(--accent))" }}
+              className="hover-underline pointer-events-auto mt-5 text-[13px] uppercase leading-[1.7] tracking-[0.03em] text-foreground"
               onClick={onOpen}
             >
               Read about the band ↗
