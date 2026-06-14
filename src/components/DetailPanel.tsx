@@ -18,7 +18,7 @@ export function DetailPanel({ rec, onClose }: { rec: RecInfo; onClose: () => voi
   }, [rec.artist, rec.cover]);
 
   return (
-    <motion.div className="fixed inset-0 z-30 flex justify-end" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+    <motion.div className="fixed inset-0 z-[70] flex justify-end" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
       <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" onClick={onClose} />
       <motion.aside
         className="relative h-full w-[min(480px,94vw)] overflow-y-auto border-l border-border bg-[#0c0c0b] text-[#e8e6e0]"

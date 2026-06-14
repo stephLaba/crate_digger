@@ -281,8 +281,9 @@ export class CrateDiggerEngine {
     });
     this.snapOrder = this.records.slice().sort((a, b) => b.group.position.z - a.group.position.z);
     this.maxYear = Math.max(NOW_YEAR, this.snapOrder[this.snapOrder.length - 1].snapYear);
-    // start centered on the FIRST record so it's visible the moment you land
-    this.snapIndex = 0; this.travelTarget = this.snapOrder[0].snapYear; this.travelYear = this.travelTarget;
+    // start at the very beginning of the timeline (the first year), before any album is selected;
+    // the first scroll brings you onto the first record.
+    this.snapIndex = -1; this.travelTarget = this.minYear; this.travelYear = this.minYear;
     this.lastFront = null;
     this._fetchMedia();
   }
