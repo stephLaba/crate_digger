@@ -122,12 +122,11 @@
       0 12px 34px rgba(0, 0, 0, 0.45);
   }
 
-  /* underline (word-width) that slides off to the right, then re-enters from the right on hover */
+  /* underline that collapses to the right, then redraws as a fresh line from the left */
   .hover-underline {
     position: relative;
     display: inline-block;
     padding-bottom: 6px;
-    overflow: hidden;
   }
   .hover-underline::after {
     content: "";
@@ -137,15 +136,34 @@
     width: 100%;
     height: 2px;
     background: currentColor;
-    transform: translateX(0);
+    transform: scaleX(1);
+    transform-origin: right center;
   }
   .hover-underline:hover::after {
-    animation: underline-swipe 0.62s cubic-bezier(0.5, 0, 0.2, 1);
+    animation: underline-redraw 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  @keyframes underline-swipe {
-    0% { transform: translateX(0); }
-    45% { transform: translateX(120%); }
-    55% { transform: translateX(120%); }
-    100% { transform: translateX(0); }
+  @keyframes underline-redraw {
+    0% { transform: scaleX(1); transform-origin: right center; }
+    50% { transform: scaleX(0); transform-origin: right center; }
+    50.001% { transform: scaleX(0); transform-origin: left center; }
+    100% { transform: scaleX(1); transform-origin: left center; }
+  }
+
+  /* keycap-style chips for the controls hint */
+  .kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.5em;
+    padding: 0.28em 0.5em;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom-width: 2px;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 10px;
+    line-height: 1;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 }

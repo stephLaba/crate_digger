@@ -150,7 +150,6 @@ export class CrateDiggerEngine {
     const aspect = innerWidth / innerHeight;
     const geo = new THREE.PlaneGeometry(3.0, 3.0);
     tracks.forEach((t, i) => {
-      const { tex, canvas } = makeCover(t[1], t[2], t[0], HUE, hash(t[1] + t[2]) + i + 1);
       const col = i % cols, row = Math.floor(i / cols);
       const zr = ((Math.sin(i * 127.1) * 43758.5) % 1 + 1) % 1; // deterministic depth
       const z = -14 - zr * 34; // -14 (front) … -48 (deep)
@@ -160,8 +159,8 @@ export class CrateDiggerEngine {
       const x = ndcX * Math.abs(z) * tanHalf * aspect;
       const y = ndcY * Math.abs(z) * tanHalf;
       const blurPx = Math.max(0, zr - 0.2) * 10; // further back = more blur
-      const map = blurPx > 0.6 ? blurToTexture(canvas, blurPx) : tex;
-      const mat = new THREE.MeshBasicMaterial({ map, transparent: true, opacity: 0.4 + (1 - zr) * 0.6, depthWrite: false });
+      // start as a plain grey box; real album art swaps in once it loads
+      const mat = new THREE.MeshBasicMaterial({ color: 0x23232a, transparent: true, opacity: 0.4 + (1 - zr) * 0.6, depthWrite: false });
       const m = new THREE.Mesh(geo, mat);
       m.position.set(x, y, z);
       m.scale.setScalar(0.75 + (1 - zr) * 0.85);
@@ -183,7 +182,7 @@ export class CrateDiggerEngine {
             let map = tex;
             if (it.blurPx > 0.6 && tex.image) map = blurToTexture(tex.image, it.blurPx);
             else tex.colorSpace = THREE.SRGBColorSpace;
-            it.mat.map?.dispose?.(); it.mat.map = map; it.mat.needsUpdate = true;
+            it.mat.map = map; it.mat.color.set(0xffffff); it.mat.needsUpdate = true;
           }, undefined, () => {});
         }).catch(() => {});
     });
@@ -265,26 +264,36 @@ export class CrateDiggerEngine {
     const perYear = {};
     TRACKS.forEach((t, i) => {
       const [year, album, artist, note, era] = t;
-      const { tex, url } = makeCover(album, artist, year, HUE, hash(album + artist) + i + 1);
-      const group = new THREE.Group();
-      const cover = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55, metalness: 0.1, transparent: true, opacity: 0 });
-      const side = new THREE.MeshStandardMaterial({ color: 0x111114, roughness: 0.8, transparent: true, opacity: 0 });
-      const sleeve = new THREE.Mesh(this.sleeveGeo, [side, side, side, side, cover, side]); group.add(sleeve);
+      const ph = isPlaceholder(t);
       const k = perYear[year] = perYear[year] || 0; perYear[year]++;
       const sgn = i % 2 === 0 ? -1 : 1;
       // sit just off the center path (visible beside the centered text, camera passes beside them)
       const x = sgn * 4.6, y = Math.sin(i * 0.7) * 1.0, z = this.yearToZ(year) - k * 9;
+      const group = new THREE.Group();
       group.position.set(x, y, z); group.lookAt(x, y, z + 10); group.rotation.y += -sgn * 0.16;
       this.field.add(group);
-      const rec = { group, year, album, artist, note, era, idx: i, snapYear: this.minYear - (z + this.FOCUS) / this.SPACING, coverMat: cover, mats: [cover, side], curOp: 0, coverURL: url, realArt: null, previewUrl: null, audio: null, curVol: 0 };
-      this.records.push(rec); sleeve.userData.rec = rec; this.pickMeshes.push(sleeve);
+      let cover = null, mats = [], url = "", sleeve = null;
+      if (!ph) {
+        // the "Today" entry has no album cover — only its records get a sleeve
+        const c = makeCover(album, artist, year, HUE, hash(album + artist) + i + 1); url = c.url;
+        cover = new THREE.MeshStandardMaterial({ map: c.tex, roughness: 0.55, metalness: 0.1, transparent: true, opacity: 0 });
+        const side = new THREE.MeshStandardMaterial({ color: 0x111114, roughness: 0.8, transparent: true, opacity: 0 });
+        sleeve = new THREE.Mesh(this.sleeveGeo, [side, side, side, side, cover, side]);
+        group.add(sleeve); mats = [cover, side];
+      }
+      const rec = { group, year, album, artist, note, era, idx: i, snapYear: this.minYear - (z + this.FOCUS) / this.SPACING, coverMat: cover, mats, curOp: 0, coverURL: url, realArt: null, previewUrl: null, audio: null, curVol: 0 };
+      this.records.push(rec);
+      if (sleeve) { sleeve.userData.rec = rec; this.pickMeshes.push(sleeve); }
     });
     this.snapOrder = this.records.slice().sort((a, b) => b.group.position.z - a.group.position.z);
-    this.maxYear = Math.max(NOW_YEAR, this.snapOrder[this.snapOrder.length - 1].snapYear);
+    // a virtual "end" stop sits just past the last record (snapIndex === snapOrder.length)
+    const last = this.snapOrder[this.snapOrder.length - 1];
+    this.endYear = last.snapYear + (this.FOCUS + 6) / this.SPACING;
+    this.maxYear = Math.max(NOW_YEAR, this.endYear);
     // start at the very beginning of the timeline (the first year), before any album is selected;
     // the first scroll brings you onto the first record.
     this.snapIndex = -1; this.travelTarget = this.minYear; this.travelYear = this.minYear;
-    this.lastFront = null;
+    this.lastFront = null; this._atEnd = false;
     this._fetchMedia();
   }
   _fetchMedia() {
@@ -360,7 +369,12 @@ export class CrateDiggerEngine {
     this.startCrackle(); this.lastFront = null; this.emit(true);
   }
   restart() { this.travelYear = this.minYear; this.snapTo(0); }
-  snapTo(idx) { if (!this.snapOrder.length) return; this.snapIndex = Math.max(0, Math.min(this.snapOrder.length - 1, idx)); this.travelTarget = this.clamp(this.snapOrder[this.snapIndex].snapYear); }
+  snapTo(idx) {
+    if (!this.snapOrder.length) return;
+    const endIdx = this.snapOrder.length; // virtual end-card stop
+    this.snapIndex = Math.max(0, Math.min(endIdx, idx));
+    this.travelTarget = this.snapIndex === endIdx ? this.clamp(this.endYear) : this.clamp(this.snapOrder[this.snapIndex].snapYear);
+  }
   step(dir) { const now = performance.now(); if (now - this.lastSnap < 180) return; this.lastSnap = now; this.snapTo(this.snapIndex + dir); }
   setMuted(b) { this.muted = b; this._applyCrackleGain(); if (b === false && !this.active) this.startCrackle(); }
   setVolume(v) { this.masterVol = v; this.muted = false; this._applyCrackleGain(); }
@@ -407,10 +421,9 @@ export class CrateDiggerEngine {
   current() { return this.lastFront ? this._recInfo(this.lastFront) : null; }
   emit(force) {
     const cur = this.current();
-    const arrivedLast = this.snapIndex >= this.snapOrder.length - 1 && Math.abs(this.travelTarget - this.travelYear) < 0.8;
     const snap = {
       active: this.active,
-      atEnd: this.active && this.snapOrder.length > 0 && arrivedLast,
+      atEnd: !!this._atEnd && Math.abs(this.travelTarget - this.travelYear) < 1.2,
       showInfo: this._showInfo || false,
       key: cur ? cur.album + cur.year : "",
       snapIndex: this.snapIndex,
@@ -449,9 +462,10 @@ export class CrateDiggerEngine {
       for (const m of r.mats) m.opacity = r.curOp;
     }
     // the displayed record + title are driven by the snap index, so the title always matches what you scrolled to
-    const cur = this.snapOrder.length ? this.snapOrder[this.snapIndex] : null;
-    if (cur !== this.lastFront) this.lastFront = cur;
+    const cur = (this.snapIndex >= 0 && this.snapIndex < this.snapOrder.length) ? this.snapOrder[this.snapIndex] : null;
+    this.lastFront = cur;
     this._showInfo = this.active && !!cur;
+    this._atEnd = this.active && this.snapIndex === this.snapOrder.length;
 
     if (this.title) {
       if (this.active) {
