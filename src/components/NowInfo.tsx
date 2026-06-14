@@ -26,18 +26,18 @@ export function NowInfo({ current, show, onOpen }: { current: RecInfo | null; sh
           exit={{ opacity: 0, x: "-50%", y: "-50%", filter: "blur(10px)" }}
           transition={{ duration: 0.5, ease: [0.2, 0.7, 0.2, 1] }}
         >
-          {/* 1 — album title (big display face) */}
+          {/* meta line: genre · year (above the album name) */}
+          <p className="mb-4 text-xs uppercase tracking-widest text-white/40">
+            {current.era} · {current.year >= 2024 ? "NOW" : current.year}
+          </p>
+
+          {/* album title (big display face) */}
           <h2 className="font-display uppercase" style={{ fontSize: "clamp(42px, 7.5vw, 92px)" }}>
             <StaggerWords text={current.album} stagger={0.06} />
           </h2>
 
-          {/* 2 — band name */}
-          <h3 className="mb-1 mt-3 text-xl font-bold uppercase tracking-wide">{current.artist}</h3>
-
-          {/* 3 — meta line: genre · year */}
-          <p className="text-xs uppercase tracking-widest text-white/40">
-            {current.era} · {current.year >= 2024 ? "NOW" : current.year}
-          </p>
+          {/* band name */}
+          <h3 className="mt-3 text-xl font-bold uppercase tracking-wide">{current.artist}</h3>
 
           {/* 4 — description */}
           {current.note && (
