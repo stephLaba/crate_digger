@@ -17,7 +17,7 @@ export function Landing({ onEnter }: { onEnter: () => void }) {
         <Logo width={150} />
       </motion.div>
 
-      <h1 className="font-display uppercase text-foreground" style={{ fontSize: "clamp(64px, 15vw, 220px)", lineHeight: 0.84 }}>
+      <h1 className="font-display uppercase text-foreground" style={{ fontSize: "clamp(64px, 15vw, 220px)", lineHeight: 0.95 }}>
         <StaggerWords text="Crate Digger" stagger={0.12} delay={0.15} />
       </h1>
 

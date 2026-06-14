@@ -60,7 +60,7 @@
   .font-display {
     font-family: theme("fontFamily.display");
     letter-spacing: 0.01em;
-    line-height: 0.86;
+    line-height: 0.95;
   }
 
   .label {

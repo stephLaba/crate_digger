@@ -22,18 +22,18 @@ export function StaggerWords({
       variants={{ show: { transition: { staggerChildren: stagger, delayChildren: delay } } }}
     >
       {words.map((w, i) => (
-        <span key={i} className="inline-block overflow-hidden align-bottom">
-          <motion.span
-            className="inline-block"
-            variants={{
-              hidden: { opacity: 0, y: "0.7em", filter: "blur(12px)" },
-              show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.6, ease: [0.2, 0.7, 0.2, 1] } },
-            }}
-          >
-            {w}
-          </motion.span>
+        <motion.span
+          key={i}
+          className="inline-block"
+          style={{ paddingBottom: "0.08em" }}
+          variants={{
+            hidden: { opacity: 0, y: "0.45em", filter: "blur(12px)" },
+            show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.6, ease: [0.2, 0.7, 0.2, 1] } },
+          }}
+        >
+          {w}
           {i < words.length - 1 ? " " : ""}
-        </span>
+        </motion.span>
       ))}
     </motion.span>
   );
