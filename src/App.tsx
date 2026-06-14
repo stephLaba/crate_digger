@@ -8,6 +8,7 @@ import { NowInfo, type RecInfo } from "./components/NowInfo";
 import { DetailPanel } from "./components/DetailPanel";
 import { EndCard } from "./components/EndCard";
 import { AudioControls } from "./components/AudioControls";
+import { Cursor } from "./components/Cursor";
 
 type EngineState = { active: boolean; atEnd: boolean; showInfo: boolean; current: RecInfo | null; snapIndex: number };
 
@@ -54,6 +55,7 @@ export default function App() {
 
   return (
     <>
+      <Cursor />
       <div className="grid-bg fixed inset-0 z-0" />
       <canvas ref={canvasRef} className="fixed inset-0 z-[1]" />
       <div className="vignette pointer-events-none fixed inset-0 z-[5]" />

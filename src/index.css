@@ -32,6 +32,35 @@
     color: hsl(var(--foreground));
     font-family: theme("fontFamily.sans");
     -webkit-font-smoothing: antialiased;
+    cursor: none;
+  }
+
+  /* custom dot cursor */
+  .cursor-dot {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 9px;
+    height: 9px;
+    margin: -4.5px 0 0 -4.5px;
+    border-radius: 50%;
+    background: #e9e9e6;
+    pointer-events: none;
+    z-index: 300;
+    opacity: 0;
+    mix-blend-mode: difference;
+    transition: width 0.22s ease, height 0.22s ease, margin 0.22s ease, background 0.22s ease, opacity 0.25s ease;
+  }
+  .cursor-dot--big {
+    width: 34px;
+    height: 34px;
+    margin: -17px 0 0 -17px;
+    background: transparent;
+    border: 1.5px solid #e9e9e6;
+  }
+  @media (hover: none) {
+    body { cursor: auto; }
+    .cursor-dot { display: none; }
   }
 
   canvas {
