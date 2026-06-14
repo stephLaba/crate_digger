@@ -96,7 +96,7 @@ export class CrateDiggerEngine {
     this.onState = onState || (() => {});
     this.onOpen = onOpen || (() => {});
     this.active = false; this.paused = false; this.muted = false; this.masterVol = 0.65; this.panelOpen = false;
-    this.minYear = 1968; this.maxYear = NOW_YEAR; this.SPACING = 9.5;
+    this.minYear = 1968; this.maxYear = NOW_YEAR; this.SPACING = 14;
     this.travelYear = this.minYear; this.travelTarget = this.minYear;
     this.records = []; this.snapOrder = []; this.snapIndex = 0; this.lastSnap = 0; this.lastFront = null;
     this.look = { x: 0, y: 0, tx: 0, ty: 0 };
@@ -271,7 +271,7 @@ export class CrateDiggerEngine {
       const sleeve = new THREE.Mesh(this.sleeveGeo, [side, side, side, side, cover, side]); group.add(sleeve);
       const k = perYear[year] = perYear[year] || 0; perYear[year]++;
       const sgn = i % 2 === 0 ? -1 : 1;
-      const x = sgn * (6.6 + k * 3.0), y = Math.sin(i * 0.7) * 1.2, z = this.yearToZ(year) - k * 6.5;
+      const x = sgn * (6.6 + k * 3.0), y = Math.sin(i * 0.7) * 1.2, z = this.yearToZ(year) - k * 9;
       group.position.set(x, y, z); group.lookAt(x, y, z + 10); group.rotation.y += -sgn * 0.22;
       this.field.add(group);
       const rec = { group, year, album, artist, note, era, idx: i, snapYear: this.minYear - (z + 3) / this.SPACING, coverMat: cover, coverURL: url, realArt: null, previewUrl: null, audio: null, curVol: 0 };
@@ -279,7 +279,8 @@ export class CrateDiggerEngine {
     });
     this.snapOrder = this.records.slice().sort((a, b) => b.group.position.z - a.group.position.z);
     this.maxYear = Math.max(NOW_YEAR, this.snapOrder[this.snapOrder.length - 1].snapYear);
-    this.snapIndex = 0; this.travelYear = this.minYear; this.travelTarget = this.snapOrder[0].snapYear;
+    // start centered on the FIRST record so it's visible the moment you land
+    this.snapIndex = 0; this.travelTarget = this.snapOrder[0].snapYear; this.travelYear = this.travelTarget;
     this.lastFront = null;
     this._fetchMedia();
   }
@@ -419,20 +420,26 @@ export class CrateDiggerEngine {
     const tgt = this.audioLevel > 0.02 ? Math.pow(1 - ph, 2.0) * Math.min(1, this.audioLevel * 1.5) : 0;
     this.pulse += (tgt - this.pulse) * 0.3;
 
-    let best = Infinity, front = null;
-    for (const r of this.records) { const dist = Math.abs(r.group.position.z - (camZ - 3)); const sc = dist < 6 ? 1 + (6 - dist) * 0.03 : 1; r.group.scale.setScalar(THREE.MathUtils.lerp(r.group.scale.x, sc, 0.12)); if (dist < best) { best = dist; front = r; } }
-
-    if (front !== this.lastFront) this.lastFront = front;
-    this._showInfo = this.active && front && best < 11;
+    // visual pop: the record at the viewing point grows (helps you see which one is "current")
+    for (const r of this.records) { const dist = Math.abs(r.group.position.z - (camZ - 3)); const sc = dist < 8 ? 1 + (8 - dist) * 0.05 : 1; r.group.scale.setScalar(THREE.MathUtils.lerp(r.group.scale.x, sc, 0.14)); }
+    // the displayed record + title are driven by the snap index, so the title always matches what you scrolled to
+    const cur = this.snapOrder.length ? this.snapOrder[this.snapIndex] : null;
+    if (cur !== this.lastFront) this.lastFront = cur;
+    this._showInfo = this.active && !!cur;
 
     if (this.title) {
-      const home = !this.active;
-      const vH = 2 * Math.abs(this._titleZ) * Math.tan(((62 * Math.PI) / 180) / 2);
-      this.titleMat.uniforms.uMouse.value.set(this._mx + 0.5, 0.5 + (-this._my * vH) / this._planeH);
-      const u = this.titleMat.uniforms;
-      u.uStrength.value += ((home ? 0.42 : 0) - u.uStrength.value) * 0.08;
-      u.uOpacity.value += ((home ? 1 : 0) - u.uOpacity.value) * 0.1;
-      this.title.visible = u.uOpacity.value > 0.01;
+      if (this.active) {
+        // never show the bulge title in the timeline
+        this.titleMat.uniforms.uOpacity.value = 0;
+        this.title.visible = false;
+      } else {
+        const vH = 2 * Math.abs(this._titleZ) * Math.tan(((62 * Math.PI) / 180) / 2);
+        const u = this.titleMat.uniforms;
+        u.uMouse.value.set(this._mx + 0.5, 0.5 + (-this._my * vH) / this._planeH);
+        u.uStrength.value += (0.42 - u.uStrength.value) * 0.08;
+        u.uOpacity.value += (1 - u.uOpacity.value) * 0.1;
+        this.title.visible = true;
+      }
     }
     if (this.orb && !this.active) {
       // slow drift + gentle cursor parallax (Getty "Tracing Art" feel)

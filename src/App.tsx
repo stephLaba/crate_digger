@@ -9,6 +9,7 @@ import { DetailPanel } from "./components/DetailPanel";
 import { EndCard } from "./components/EndCard";
 import { AudioControls } from "./components/AudioControls";
 import { Cursor } from "./components/Cursor";
+import { playClick, setSfxMuted } from "./lib/sfx";
 
 type EngineState = { active: boolean; atEnd: boolean; showInfo: boolean; current: RecInfo | null; snapIndex: number };
 
@@ -18,7 +19,9 @@ export default function App() {
   const [state, setState] = useState<EngineState>({ active: false, atEnd: false, showInfo: false, current: null, snapIndex: 0 });
   const [ticks, setTicks] = useState<{ year: number; label: string }[]>([]);
   const [detail, setDetail] = useState<RecInfo | null>(null);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState<boolean>(() => {
+    try { return localStorage.getItem("cd_muted") === "1"; } catch { return false; }
+  });
   const [paused, setPaused] = useState(false);
   const [volume, setVolume] = useState(65);
   const [fading, setFading] = useState(false);
@@ -26,11 +29,15 @@ export default function App() {
   useEffect(() => {
     const eng = new CrateDiggerEngine(canvasRef.current!, {
       onState: (s: EngineState) => setState(s),
-      onOpen: (rec: RecInfo) => { eng.setPanelOpen(true); setDetail(rec); },
+      onOpen: (rec: RecInfo) => { playClick(); eng.setPanelOpen(true); setDetail(rec); },
     });
     engineRef.current = eng;
+    eng.setMuted(muted); setSfxMuted(muted); // apply persisted mute (survives navigation + reload)
     return () => eng.dispose();
   }, []);
+
+  // persist mute across navigation and reloads
+  useEffect(() => { try { localStorage.setItem("cd_muted", muted ? "1" : "0"); } catch { /* ignore */ } }, [muted]);
 
   const fadeThen = useCallback((fn: () => void) => {
     setFading(true);
@@ -43,7 +50,7 @@ export default function App() {
   const restart = () => fadeThen(() => engineRef.current?.restart());
   const openDetail = () => { if (state.current) { engineRef.current?.setPanelOpen(true); setDetail(state.current); } };
 
-  const toggleMute = () => setMuted((m) => { const v = !m; engineRef.current?.setMuted(v); return v; });
+  const toggleMute = () => setMuted((m) => { const v = !m; engineRef.current?.setMuted(v); setSfxMuted(v); return v; });
   const togglePlay = () => setPaused((p) => { const v = !p; engineRef.current?.setPaused(v); return v; });
   const onVolume = (v: number) => { setVolume(v); setMuted(false); engineRef.current?.setVolume(v / 100); };
 
@@ -52,6 +59,15 @@ export default function App() {
     addEventListener("keydown", onKey);
     return () => removeEventListener("keydown", onKey);
   }, [detail, state.active]);
+
+  // click sound on any button / link
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if ((e.target as HTMLElement)?.closest("button, a, .hover-underline")) playClick();
+    };
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, []);
 
   return (
     <>
