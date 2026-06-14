@@ -17,7 +17,7 @@ export function Landing({ onEnter }: { onEnter: () => void }) {
       </h1>
 
       <motion.p
-        className="mt-8 max-w-[560px] text-[13px] uppercase leading-[1.7] tracking-[0.12em] text-foreground"
+        className="mt-8 max-w-[560px] text-[13px] uppercase leading-[1.7] tracking-[0.03em] text-foreground"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.7, duration: 0.7 }}
