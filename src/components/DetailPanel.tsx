@@ -27,7 +27,14 @@ export function DetailPanel({ rec, onClose }: { rec: RecInfo; onClose: () => voi
         exit={{ x: 30, opacity: 0 }}
         transition={{ duration: 0.35, ease: [0.2, 0.7, 0.2, 1] }}
       >
-        <button onClick={onClose} className="absolute right-5 top-5 z-20 text-white/70 hover:text-white"><X size={20} /></button>
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="glass-dark absolute right-5 top-5 z-20 flex h-9 w-9 items-center justify-center rounded-full text-white"
+          style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.55))" }}
+        >
+          <X size={18} />
+        </button>
 
         {/* hero: band photo as background, info overlaid bottom-left, gradient + blur fading into the content */}
         <header className="relative h-[56%] min-h-[340px] w-full overflow-hidden">
