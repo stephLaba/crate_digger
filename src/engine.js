@@ -92,7 +92,7 @@ export class CrateDiggerEngine {
     this.look = { x: 0, y: 0, tx: 0, ty: 0 };
     this._last = {};
     this.aCtx = null; this.crackleNode = null; this.audioLevel = 0; this.pulse = 0;
-    this.orbItems = [];
+    this.orbItems = []; this._mx = 0; this._my = 0; this.parX = 0; this.parY = 0;
 
     const scene = new THREE.Scene(); scene.background = null; scene.fog = new THREE.FogExp2(0x0d0d0c, 0.012);
     const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.1, 1200);
@@ -129,20 +129,30 @@ export class CrateDiggerEngine {
   yearToZ(y) { return -(y - this.minYear) * this.SPACING - 8; }
   clamp(v) { return Math.max(this.minYear, Math.min(this.maxYear, v)); }
 
-  /* ---------- orb (homepage) ---------- */
+  /* ---------- homepage gallery: a drifting grid of records with depth ---------- */
   _buildOrb() {
     this.orb = new THREE.Group();
     const tracks = TRACKS.filter((t) => t[1] !== "Today");
-    const N = tracks.length, R = 8.2, geo = new THREE.PlaneGeometry(2.4, 2.4);
+    const cols = 6, gapX = 6.6, gapY = 6.2;
+    const rows = Math.ceil(tracks.length / cols);
+    const geo = new THREE.PlaneGeometry(3.5, 3.5);
     tracks.forEach((t, i) => {
       const { tex } = makeCover(t[1], t[2], t[0], HUE, hash(t[1] + t[2]) + i + 1);
-      const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+      const col = i % cols, row = Math.floor(i / cols);
+      // deterministic pseudo-random depth so some records sit further behind
+      const zr = ((Math.sin(i * 127.1) * 43758.5) % 1 + 1) % 1;
+      const x = (col - (cols - 1) / 2) * gapX + Math.sin(i * 12.9) * 1.5;
+      const y = ((rows - 1) / 2 - row) * gapY + Math.cos(i * 7.7) * 1.3;
+      const z = -8 - zr * 36; // -8 (front) … -44 (deep)
+      const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.45 + (1 - zr) * 0.55, depthWrite: false });
       const m = new THREE.Mesh(geo, mat);
-      const y = 1 - (i / (N - 1)) * 2, r = Math.sqrt(1 - y * y), phi = i * 2.399963;
-      m.position.set(Math.cos(phi) * r * R, y * R, Math.sin(phi) * r * R); m.lookAt(0, 0, 0);
-      this.orb.add(m); this.orbItems.push({ mat, track: t });
+      m.position.set(x, y, z);
+      m.scale.setScalar(1 + (1 - zr) * 0.35);
+      this.orb.add(m);
+      this.orbItems.push({ mat, track: t, m, baseY: y, bob: i * 0.7, amp: 0.15 + zr * 0.35 });
     });
-    this.orb.position.set(0, 0, -20); this.scene.add(this.orb);
+    this.orb.position.set(0, 0, -6);
+    this.scene.add(this.orb);
   }
   _fetchOrbArt() {
     this.orbItems.forEach((it) => {
@@ -281,6 +291,8 @@ export class CrateDiggerEngine {
     addEventListener("resize", this._onResize);
     this._onFirst = () => { if (!this.active && !this.muted) this.startCrackle(); };
     ["pointerdown", "keydown", "touchstart"].forEach((ev) => addEventListener(ev, this._onFirst));
+    this._onPM = (e) => { this._mx = e.clientX / innerWidth - 0.5; this._my = e.clientY / innerHeight - 0.5; };
+    addEventListener("pointermove", this._onPM);
   }
   _pick(cx, cy) {
     const ndc = new THREE.Vector2((cx / innerWidth) * 2 - 1, -(cy / innerHeight) * 2 + 1);
@@ -294,9 +306,10 @@ export class CrateDiggerEngine {
   current() { return this.lastFront ? this._recInfo(this.lastFront) : null; }
   emit(force) {
     const cur = this.current();
+    const arrivedLast = this.snapIndex >= this.snapOrder.length - 1 && Math.abs(this.travelTarget - this.travelYear) < 0.8;
     const snap = {
       active: this.active,
-      atEnd: this.active && (this.travelYear - this.minYear) / (this.maxYear - this.minYear) > 0.985,
+      atEnd: this.active && this.snapOrder.length > 0 && arrivedLast,
       showInfo: this._showInfo || false,
       key: cur ? cur.album + cur.year : "",
       snapIndex: this.snapIndex,
@@ -328,7 +341,15 @@ export class CrateDiggerEngine {
     if (front !== this.lastFront) this.lastFront = front;
     this._showInfo = this.active && front && best < 11;
 
-    if (this.orb && !this.active) { this.orb.rotation.y = t * 0.12; this.orb.rotation.x = Math.sin(t * 0.18) * 0.15; }
+    if (this.orb && !this.active) {
+      // slow drift + gentle cursor parallax (Getty "Tracing Art" feel)
+      this.parX += ((this._mx || 0) - this.parX) * 0.04;
+      this.parY += ((this._my || 0) - this.parY) * 0.04;
+      this.orb.position.x = Math.sin(t * 0.08) * 2.2 - this.parX * 4;
+      this.orb.position.y = Math.cos(t * 0.062) * 1.5 + this.parY * 3;
+      this.orb.rotation.z = Math.sin(t * 0.05) * 0.015;
+      for (const it of this.orbItems) it.m.position.y = it.baseY + Math.sin(t * 0.5 + it.bob) * it.amp;
+    }
     this.bloom.strength = this.BLOOM_BASE + this.pulse * 0.25;
     this._updateAudio(camZ);
     this.emit(false);
@@ -341,6 +362,7 @@ export class CrateDiggerEngine {
     removeEventListener("keydown", this._onKey); removeEventListener("mouseup", this._onMU); removeEventListener("mousemove", this._onMM);
     removeEventListener("resize", this._onResize);
     ["pointerdown", "keydown", "touchstart"].forEach((ev) => removeEventListener(ev, this._onFirst));
+    removeEventListener("pointermove", this._onPM);
     this._stopAllAudio(); this.stopCrackle();
     this.renderer.dispose();
   }

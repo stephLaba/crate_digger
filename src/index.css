@@ -43,12 +43,13 @@
   /* faint grid background — vivid in the center, fading at the edges */
   .grid-bg {
     background-color: hsl(var(--background));
-    background-image: linear-gradient(rgba(199, 202, 191, 0.08) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(199, 202, 191, 0.08) 1px, transparent 1px);
-    background-size: 48px 48px;
+    background-image: linear-gradient(rgba(199, 202, 191, 0.2) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(199, 202, 191, 0.2) 1px, transparent 1px);
+    background-size: 54px 54px;
     background-position: center center;
-    -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 0%, rgba(0, 0, 0, 0.55) 42%, transparent 74%);
-    mask-image: radial-gradient(circle at 50% 50%, #000 0%, rgba(0, 0, 0, 0.55) 42%, transparent 74%);
+    /* strongest in the center, but still visible to the edges */
+    -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 0%, rgba(0, 0, 0, 0.7) 55%, rgba(0, 0, 0, 0.32) 100%);
+    mask-image: radial-gradient(circle at 50% 50%, #000 0%, rgba(0, 0, 0, 0.7) 55%, rgba(0, 0, 0, 0.32) 100%);
   }
 
   .vignette {
