@@ -94,12 +94,8 @@ export default function App() {
           <Timeline ticks={ticks} activeIndex={state.snapIndex} onSelect={(i) => engineRef.current?.snapTo(i)} />
           <EndCard show={state.atEnd} onRestart={restart} onHome={goHome} />
 
-          <div className="pointer-events-none fixed bottom-6 left-8 z-10 flex items-center gap-3 text-[10px] uppercase tracking-[0.14em] text-muted">
-            <span className="flex items-center gap-1.5"><kbd className="kbd">Scroll</kbd><kbd className="kbd">↑↓</kbd> Next record</span>
-            <span className="text-white/20">/</span>
-            <span className="flex items-center gap-1.5"><kbd className="kbd">Drag</kbd> Look</span>
-            <span className="text-white/20">/</span>
-            <span className="flex items-center gap-1.5"><kbd className="kbd">Space</kbd> Auto</span>
+          <div className="pointer-events-none fixed bottom-6 left-8 z-10 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-muted">
+            <kbd className="kbd">Scroll</kbd><kbd className="kbd">↑↓</kbd> Next record
           </div>
         </>
       )}

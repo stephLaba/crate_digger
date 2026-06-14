@@ -389,8 +389,7 @@ export class CrateDiggerEngine {
     this._onTM = (e) => { if (!this.active || this.panelOpen || this._touchY == null) return; this._touchAcc += this._touchY - e.touches[0].clientY; this._touchY = e.touches[0].clientY; if (Math.abs(this._touchAcc) > 46) { this.step(this._touchAcc > 0 ? 1 : -1); this._touchAcc = 0; } };
     addEventListener("touchstart", this._onTS, { passive: true }); addEventListener("touchmove", this._onTM, { passive: true });
     this._onKey = (e) => {
-      if (e.code === "Space" && this.active && !this.panelOpen) { this.paused = !this.paused; e.preventDefault(); }
-      else if ((e.code === "ArrowDown" || e.code === "ArrowRight") && this.active && !this.panelOpen) { this.step(1); e.preventDefault(); }
+      if ((e.code === "ArrowDown" || e.code === "ArrowRight") && this.active && !this.panelOpen) { this.step(1); e.preventDefault(); }
       else if ((e.code === "ArrowUp" || e.code === "ArrowLeft") && this.active && !this.panelOpen) { this.step(-1); e.preventDefault(); }
     };
     addEventListener("keydown", this._onKey);
@@ -398,7 +397,8 @@ export class CrateDiggerEngine {
     this._drag = false; let px = 0, py = 0, moved = 0;
     this._onMD = (e) => { if (!this.active || this.panelOpen) return; this._drag = true; px = e.clientX; py = e.clientY; moved = 0; };
     this._onMU = (e) => { if (this._drag) { this._drag = false; if (moved < 6 && this.active && !this.panelOpen) this._pick(e.clientX, e.clientY); } };
-    this._onMM = (e) => { if (this._drag) { moved += Math.abs(e.clientX - px) + Math.abs(e.clientY - py); this.look.tx += (e.clientX - px) * 0.0016; this.look.ty = Math.max(-0.5, Math.min(0.5, this.look.ty + (e.clientY - py) * 0.0016)); px = e.clientX; py = e.clientY; } };
+    // track movement only to distinguish a click (open record) from a drag — no look rotation
+    this._onMM = (e) => { if (this._drag) { moved += Math.abs(e.clientX - px) + Math.abs(e.clientY - py); px = e.clientX; py = e.clientY; } };
     cv.addEventListener("mousedown", this._onMD); addEventListener("mouseup", this._onMU); addEventListener("mousemove", this._onMM);
     this._onResize = () => { this.camera.aspect = innerWidth / innerHeight; this.camera.updateProjectionMatrix(); this.renderer.setSize(innerWidth, innerHeight); this.composer.setSize(innerWidth, innerHeight); this.bloom.resolution.set(innerWidth, innerHeight); this._resizeTitle(); };
     addEventListener("resize", this._onResize);

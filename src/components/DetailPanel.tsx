@@ -63,7 +63,7 @@ export function DetailPanel({ rec, onClose }: { rec: RecInfo; onClose: () => voi
             <div className="text-xs font-bold uppercase tracking-widest" style={{ color: "hsl(var(--accent))" }}>{rec.yearLabel}</div>
             <h3 className="mt-1 font-display text-4xl uppercase leading-none">{rec.album}</h3>
             <div className="mt-2 text-sm uppercase tracking-wide text-white/75">{rec.artist}</div>
-            {rec.note && <div className="mt-2 max-w-xs text-[11px] uppercase italic leading-relaxed tracking-wider text-white/55">{rec.note}</div>}
+            {rec.note && <div className="mt-2 max-w-xs text-[11px] uppercase leading-relaxed tracking-wider text-white/55">{rec.note}</div>}
           </div>
         </header>
 
