@@ -4,6 +4,10 @@ import { X } from "lucide-react";
 import { fetchBio, fetchDiscography, type Album, type Bio } from "@/lib/api";
 import type { RecInfo } from "./NowInfo";
 
+// simple grey box used while album art loads or when it's missing
+const GREY = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'%3E%3Crect width='1' height='1' fill='%2323232a'/%3E%3C/svg%3E";
+const greyOnError = (e: { currentTarget: HTMLImageElement }) => { e.currentTarget.src = GREY; };
+
 export function DetailPanel({ rec, onClose }: { rec: RecInfo; onClose: () => void }) {
   const [bio, setBio] = useState<Bio | "loading">("loading");
   const [hero, setHero] = useState(rec.cover);
@@ -38,7 +42,7 @@ export function DetailPanel({ rec, onClose }: { rec: RecInfo; onClose: () => voi
 
         {/* hero: band photo as background, info overlaid bottom-left, gradient + blur fading into the content */}
         <header className="relative h-[56%] min-h-[340px] w-full overflow-hidden">
-          <img src={hero} alt="" className="absolute inset-0 h-full w-full object-cover grayscale" />
+          <img src={hero || GREY} onError={greyOnError} alt="" className="absolute inset-0 h-full w-full bg-[#23232a] object-cover grayscale" />
           {/* black gradient fading to the panel bg */}
           <div
             className="absolute inset-0"
@@ -86,7 +90,7 @@ export function DetailPanel({ rec, onClose }: { rec: RecInfo; onClose: () => voi
             <div className="grid grid-cols-3 gap-[10px]">
               {disco.map((a, i) => (
                 <div key={i} className="text-[10px] uppercase tracking-wide text-white/55">
-                  <img src={a.art} alt="" loading="lazy" className="mb-1 aspect-square w-full bg-white/5 object-cover" />
+                  <img src={a.art || GREY} onError={greyOnError} alt="" loading="lazy" className="mb-1 aspect-square w-full bg-[#23232a] object-cover" />
                   <span className="line-clamp-2 block leading-tight">{a.name}</span>
                   {a.year && <span className="text-white/35">{a.year}</span>}
                 </div>

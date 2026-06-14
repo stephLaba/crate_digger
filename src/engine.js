@@ -34,7 +34,6 @@ const TRACKS = [
   [2000, "Hybrid Theory", "Linkin Park", "Nu metal at its commercial summit.", "Nu metal"],
   [2004, "The End of Heartache", "Killswitch Engage", "Metalcore breaks through.", "Metalcore"],
   [2009, "Animals as Leaders", "Animals as Leaders", "Djent — polyrhythmic and futuristic.", "Djent & beyond"],
-  [2024, "Today", "The next wave", "Blackgaze, deathcore, endless evolution.", "Today"],
 ];
 const HUE = 0;
 
@@ -274,9 +273,8 @@ export class CrateDiggerEngine {
       this.field.add(group);
       let cover = null, mats = [], url = "", sleeve = null;
       if (!ph) {
-        // the "Today" entry has no album cover — only its records get a sleeve
-        const c = makeCover(album, artist, year, HUE, hash(album + artist) + i + 1); url = c.url;
-        cover = new THREE.MeshStandardMaterial({ map: c.tex, roughness: 0.55, metalness: 0.1, transparent: true, opacity: 0 });
+        // start as a plain grey box; real album art swaps in once it loads (grey if it's missing)
+        cover = new THREE.MeshStandardMaterial({ color: 0x23232a, roughness: 0.7, metalness: 0.05, transparent: true, opacity: 0 });
         const side = new THREE.MeshStandardMaterial({ color: 0x111114, roughness: 0.8, transparent: true, opacity: 0 });
         sleeve = new THREE.Mesh(this.sleeveGeo, [side, side, side, side, cover, side]);
         group.add(sleeve); mats = [cover, side];
@@ -307,7 +305,7 @@ export class CrateDiggerEngine {
           if (!hit) return;
           if (hit.previewUrl) rec.previewUrl = hit.previewUrl;
           const art = (hit.artworkUrl100 || "").replace("100x100", "600x600");
-          if (art && rec.coverMat) this.texLoader.load(art, (tex) => { tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8; rec.coverMat.map?.dispose?.(); rec.coverMat.map = tex; rec.coverMat.needsUpdate = true; rec.realArt = art; }, undefined, () => {});
+          if (art && rec.coverMat) this.texLoader.load(art, (tex) => { tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8; rec.coverMat.map = tex; rec.coverMat.color.set(0xffffff); rec.coverMat.needsUpdate = true; rec.realArt = art; }, undefined, () => {});
         }).catch(() => {});
     });
   }
