@@ -13,36 +13,47 @@ export type RecInfo = {
   isPlaceholder: boolean;
 };
 
+// Brutalist FeaturedAlbum styling — left-aligned, tight groups, big breaks.
 export function NowInfo({ current, show, onOpen }: { current: RecInfo | null; show: boolean; onOpen: () => void }) {
   return (
     <AnimatePresence>
       {show && current && (
-        <motion.div
+        <motion.article
           key="now"
-          className="pointer-events-none fixed left-1/2 top-1/2 z-10 w-[80vw] max-w-[620px] text-center"
-          initial={{ opacity: 0, x: "-50%", y: "-43%", filter: "blur(10px)" }}
+          className="pointer-events-none fixed left-1/2 top-1/2 z-10 w-[min(90vw,520px)] text-left text-[#e8e6e0]"
+          initial={{ opacity: 0, x: "-50%", y: "-46%", filter: "blur(10px)" }}
           animate={{ opacity: 1, x: "-50%", y: "-50%", filter: "blur(0px)" }}
-          exit={{ opacity: 0, x: "-50%", y: "-50%", filter: "blur(12px)" }}
+          exit={{ opacity: 0, x: "-50%", y: "-50%", filter: "blur(10px)" }}
           transition={{ duration: 0.5, ease: [0.2, 0.7, 0.2, 1] }}
         >
-          <div className="text-[13px] uppercase leading-[1.7] tracking-[0.03em] text-foreground">{current.yearLabel}</div>
-          <h2 className="mt-3 font-display uppercase text-foreground" style={{ fontSize: "clamp(42px, 7.5vw, 92px)" }}>
+          {/* 1 — album title (largest tier) */}
+          <h2 className="text-3xl font-extrabold uppercase leading-none tracking-tight">
             <StaggerWords text={current.album} stagger={0.06} />
           </h2>
-          <div className="mt-3 text-[13px] uppercase leading-[1.7] tracking-[0.03em] text-foreground">{current.artist}</div>
-          <div className="mt-3 text-[13px] uppercase leading-[1.7] tracking-[0.03em] text-foreground">{current.era}</div>
+
+          {/* 2 — band name */}
+          <h3 className="mb-1 mt-3 text-xl font-bold uppercase tracking-wide">{current.artist}</h3>
+
+          {/* 3 — meta line: genre · year */}
+          <p className="text-xs uppercase tracking-widest text-white/40">
+            {current.era} · {current.year >= 2024 ? "NOW" : current.year}
+          </p>
+
+          {/* 4 — description */}
           {current.note && (
-            <div className="mx-auto mt-3 max-w-[480px] text-[13px] uppercase leading-[1.7] tracking-[0.03em] text-foreground">{current.note}</div>
+            <p className="mt-7 max-w-xs text-xs uppercase leading-relaxed tracking-wider text-white/60">{current.note}</p>
           )}
+
+          {/* 5 — link */}
           {!current.isPlaceholder && (
             <button
-              className="hover-underline pointer-events-auto mt-5 text-[13px] uppercase leading-[1.7] tracking-[0.03em] text-foreground"
               onClick={onOpen}
+              className="hover-underline pointer-events-auto mt-7 inline-block text-xs font-bold uppercase tracking-widest text-[#e8e6e0]"
             >
               Read about the band ↗
             </button>
           )}
-        </motion.div>
+        </motion.article>
       )}
     </AnimatePresence>
   );
