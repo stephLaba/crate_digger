@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* near-black canvas, sage-grey ink — Aristide Benoist / JON WAY palette */
+    --background: 60 3% 5%;
+    --foreground: 75 7% 80%;
+    --muted-foreground: 75 4% 48%;
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 75 7% 70%;
+    --accent: 75 8% 82%;
+    --radius: 0.375rem;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: theme("fontFamily.sans");
+    -webkit-font-smoothing: antialiased;
+  }
+
+  canvas {
+    display: block;
+  }
+}
+
+@layer utilities {
+  /* faint grid background — vivid in the center, fading at the edges */
+  .grid-bg {
+    background-color: hsl(var(--background));
+    background-image: linear-gradient(rgba(199, 202, 191, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(199, 202, 191, 0.08) 1px, transparent 1px);
+    background-size: 48px 48px;
+    background-position: center center;
+    -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 0%, rgba(0, 0, 0, 0.55) 42%, transparent 74%);
+    mask-image: radial-gradient(circle at 50% 50%, #000 0%, rgba(0, 0, 0, 0.55) 42%, transparent 74%);
+  }
+
+  .vignette {
+    background: radial-gradient(120% 120% at 50% 50%, transparent 58%, rgba(0, 0, 0, 0.7) 100%);
+  }
+
+  /* condensed display face, tightened like the reference */
+  .font-display {
+    font-family: theme("fontFamily.display");
+    letter-spacing: 0.01em;
+    line-height: 0.86;
+  }
+
+  .label {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+  }
+}
