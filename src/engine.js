@@ -39,6 +39,7 @@ const TRACKS = [
 const HUE = 0;
 
 function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); }
+function smoothstep(a, b, x) { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); }
 function isPlaceholder(t) { return t[1] === "Today" || /next wave|modern |revival| era$|^berghain/i.test(t[2]); }
 
 function makeCover(album, artist, year, hue, seed) {
@@ -96,7 +97,7 @@ export class CrateDiggerEngine {
     this.onState = onState || (() => {});
     this.onOpen = onOpen || (() => {});
     this.active = false; this.paused = false; this.muted = false; this.masterVol = 0.65; this.panelOpen = false;
-    this.minYear = 1968; this.maxYear = NOW_YEAR; this.SPACING = 14;
+    this.minYear = 1968; this.maxYear = NOW_YEAR; this.SPACING = 14; this.FOCUS = 10;
     this.travelYear = this.minYear; this.travelTarget = this.minYear;
     this.records = []; this.snapOrder = []; this.snapIndex = 0; this.lastSnap = 0; this.lastFront = null;
     this.look = { x: 0, y: 0, tx: 0, ty: 0 };
@@ -266,15 +267,16 @@ export class CrateDiggerEngine {
       const [year, album, artist, note, era] = t;
       const { tex, url } = makeCover(album, artist, year, HUE, hash(album + artist) + i + 1);
       const group = new THREE.Group();
-      const cover = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55, metalness: 0.1 });
-      const side = new THREE.MeshStandardMaterial({ color: 0x111114, roughness: 0.8 });
+      const cover = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55, metalness: 0.1, transparent: true, opacity: 0 });
+      const side = new THREE.MeshStandardMaterial({ color: 0x111114, roughness: 0.8, transparent: true, opacity: 0 });
       const sleeve = new THREE.Mesh(this.sleeveGeo, [side, side, side, side, cover, side]); group.add(sleeve);
       const k = perYear[year] = perYear[year] || 0; perYear[year]++;
       const sgn = i % 2 === 0 ? -1 : 1;
-      const x = sgn * (6.6 + k * 3.0), y = Math.sin(i * 0.7) * 1.2, z = this.yearToZ(year) - k * 9;
-      group.position.set(x, y, z); group.lookAt(x, y, z + 10); group.rotation.y += -sgn * 0.22;
+      // sit just off the center path (visible beside the centered text, camera passes beside them)
+      const x = sgn * 4.6, y = Math.sin(i * 0.7) * 1.0, z = this.yearToZ(year) - k * 9;
+      group.position.set(x, y, z); group.lookAt(x, y, z + 10); group.rotation.y += -sgn * 0.16;
       this.field.add(group);
-      const rec = { group, year, album, artist, note, era, idx: i, snapYear: this.minYear - (z + 3) / this.SPACING, coverMat: cover, coverURL: url, realArt: null, previewUrl: null, audio: null, curVol: 0 };
+      const rec = { group, year, album, artist, note, era, idx: i, snapYear: this.minYear - (z + this.FOCUS) / this.SPACING, coverMat: cover, mats: [cover, side], curOp: 0, coverURL: url, realArt: null, previewUrl: null, audio: null, curVol: 0 };
       this.records.push(rec); sleeve.userData.rec = rec; this.pickMeshes.push(sleeve);
     });
     this.snapOrder = this.records.slice().sort((a, b) => b.group.position.z - a.group.position.z);
@@ -341,8 +343,21 @@ export class CrateDiggerEngine {
   _applyCrackleGain() { if (this.crackleNode && this.aCtx) this.crackleNode.g.gain.setTargetAtTime(this.muted ? 0 : this.masterVol * 0.32, this.aCtx.currentTime, 0.1); }
 
   /* ---------- public commands ---------- */
-  enter() { this.unlockAudio(); this.stopCrackle(); this._buildField(); if (this.orb) this.orb.visible = false; this.active = true; this.emit(true); }
-  goHome() { this.active = false; this._stopAllAudio(); if (this.orb) this.orb.visible = true; this.startCrackle(); this.lastFront = null; this.emit(true); }
+  enter() {
+    this.unlockAudio(); this.stopCrackle(); this._buildField();
+    this.field.visible = true;
+    if (this.orb) this.orb.visible = false;
+    this.active = true; this.emit(true);
+  }
+  goHome() {
+    this.active = false; this._stopAllAudio();
+    // reset the camera back to the homepage view so the orb + title are in frame again
+    this.travelYear = this.minYear; this.travelTarget = this.minYear;
+    this.look = { x: 0, y: 0, tx: 0, ty: 0 };
+    if (this.field) this.field.visible = false; // hide timeline records on the homepage
+    if (this.orb) this.orb.visible = true;
+    this.startCrackle(); this.lastFront = null; this.emit(true);
+  }
   restart() { this.travelYear = this.minYear; this.snapTo(0); }
   snapTo(idx) { if (!this.snapOrder.length) return; this.snapIndex = Math.max(0, Math.min(this.snapOrder.length - 1, idx)); this.travelTarget = this.clamp(this.snapOrder[this.snapIndex].snapYear); }
   step(dir) { const now = performance.now(); if (now - this.lastSnap < 180) return; this.lastSnap = now; this.snapTo(this.snapIndex + dir); }
@@ -420,8 +435,18 @@ export class CrateDiggerEngine {
     const tgt = this.audioLevel > 0.02 ? Math.pow(1 - ph, 2.0) * Math.min(1, this.audioLevel * 1.5) : 0;
     this.pulse += (tgt - this.pulse) * 0.3;
 
-    // visual pop: the record at the viewing point grows (helps you see which one is "current")
-    for (const r of this.records) { const dist = Math.abs(r.group.position.z - (camZ - 3)); const sc = dist < 8 ? 1 + (8 - dist) * 0.05 : 1; r.group.scale.setScalar(THREE.MathUtils.lerp(r.group.scale.x, sc, 0.14)); }
+    // the current record sits FOCUS units ahead (centered + visible); records fade in approaching
+    // focus and fade out before the camera passes through them — so you always see the one you land on.
+    const F = this.FOCUS;
+    for (const r of this.records) {
+      const focusDist = Math.abs(r.group.position.z - (camZ - F));
+      const sc = focusDist < 9 ? 1 + (9 - focusDist) * 0.04 : 1;
+      r.group.scale.setScalar(THREE.MathUtils.lerp(r.group.scale.x, sc, 0.14));
+      const fd = camZ - r.group.position.z; // how far ahead (>0 ahead of camera)
+      const op = smoothstep(2, 5, fd) * (1 - smoothstep(16, 30, fd));
+      r.curOp += (op - r.curOp) * 0.12;
+      for (const m of r.mats) m.opacity = r.curOp;
+    }
     // the displayed record + title are driven by the snap index, so the title always matches what you scrolled to
     const cur = this.snapOrder.length ? this.snapOrder[this.snapIndex] : null;
     if (cur !== this.lastFront) this.lastFront = cur;
