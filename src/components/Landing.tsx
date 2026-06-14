@@ -1,12 +1,11 @@
 import { motion } from "framer-motion";
-import { StaggerWords } from "./StaggerWords";
 import { Button } from "./ui/button";
 
 export function Landing({ onEnter }: { onEnter: () => void }) {
   return (
     <motion.div
       className="fixed inset-0 z-40 flex flex-col items-center justify-center px-[6vw] text-center"
-      style={{ background: "radial-gradient(75% 75% at 50% 50%, rgba(13,13,12,0.35) 0%, rgba(13,13,12,0.86) 72%)" }}
+      style={{ background: "radial-gradient(75% 75% at 50% 50%, rgba(13,13,12,0.12) 0%, rgba(13,13,12,0.62) 74%)" }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -19,15 +18,14 @@ export function Landing({ onEnter }: { onEnter: () => void }) {
         transition={{ delay: 0.1, duration: 0.6 }}
       >
         <span className="text-[13px] uppercase tracking-[0.34em] text-foreground">Heavy Metal</span>
-        <span className="my-6 block h-0.5 w-[70px] bg-foreground/60" />
+        <span className="my-6 block h-[70px] w-0.5 bg-foreground/60" />
       </motion.div>
 
-      <h1 className="font-display uppercase text-foreground" style={{ fontSize: "clamp(64px, 15vw, 220px)", lineHeight: 0.95 }}>
-        <StaggerWords text="Crate Digger" stagger={0.12} delay={0.15} />
-      </h1>
+      {/* the bulge title (WebGL, cursor-reactive) renders behind, in this reserved space */}
+      <div aria-hidden style={{ height: "clamp(120px, 26vh, 260px)" }} />
 
       <motion.p
-        className="mt-8 max-w-[560px] text-[13px] uppercase leading-[1.7] tracking-[0.03em] text-foreground"
+        className="max-w-[560px] text-[13px] uppercase leading-[1.7] tracking-[0.03em] text-foreground"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.7, duration: 0.7 }}

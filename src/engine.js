@@ -60,7 +60,17 @@ function makeCover(album, artist, year, hue, seed) {
   (function wrap(text, x, y, maxW, lh) { const w = text.split(" "); let line = "", yy = y; for (const word of w) { const tt = line + word + " "; if (ctx.measureText(tt).width > maxW && line) { ctx.fillText(line.trim(), x, yy); line = word + " "; yy += lh; } else line = tt; } ctx.fillText(line.trim(), x, yy); })(album.toLowerCase(), 40, S - 160, S - 80, 44);
   ctx.fillStyle = "rgba(255,255,255,0.6)"; ctx.font = "500 22px Inter,sans-serif"; ctx.fillText(artist.toLowerCase(), 40, S - 54);
   const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 8; tex.colorSpace = THREE.SRGBColorSpace;
-  return { tex, url: cv.toDataURL("image/jpeg", 0.8) };
+  return { tex, canvas: cv, url: cv.toDataURL("image/jpeg", 0.8) };
+}
+
+// draw a source (canvas or image) through a CSS blur into a new texture — used for depth blur
+function blurToTexture(src, px) {
+  const w = src.width || src.naturalWidth || 512, h = src.height || src.naturalHeight || 512;
+  const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+  const ctx = cv.getContext("2d");
+  ctx.filter = `blur(${px}px)`;
+  ctx.drawImage(src, 0, 0, w, h);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; return tex;
 }
 
 function makeTextPlane(text, size, opacity) {
@@ -117,7 +127,7 @@ export class CrateDiggerEngine {
     this.field = new THREE.Group(); scene.add(this.field);
     this.texLoader = new THREE.TextureLoader(); this.texLoader.setCrossOrigin("anonymous");
 
-    this._buildOrb(); this._fetchOrbArt();
+    this._buildOrb(); this._fetchOrbArt(); this._buildTitle();
 
     this.ray = new THREE.Raycaster();
     this._bind();
@@ -139,7 +149,7 @@ export class CrateDiggerEngine {
     const aspect = innerWidth / innerHeight;
     const geo = new THREE.PlaneGeometry(3.0, 3.0);
     tracks.forEach((t, i) => {
-      const { tex } = makeCover(t[1], t[2], t[0], HUE, hash(t[1] + t[2]) + i + 1);
+      const { tex, canvas } = makeCover(t[1], t[2], t[0], HUE, hash(t[1] + t[2]) + i + 1);
       const col = i % cols, row = Math.floor(i / cols);
       const zr = ((Math.sin(i * 127.1) * 43758.5) % 1 + 1) % 1; // deterministic depth
       const z = -14 - zr * 34; // -14 (front) … -48 (deep)
@@ -148,12 +158,14 @@ export class CrateDiggerEngine {
       const ndcY = -(((row + 0.5) / rows * 2 - 1) * 1.05) + Math.cos(i * 5.7) * 0.05;
       const x = ndcX * Math.abs(z) * tanHalf * aspect;
       const y = ndcY * Math.abs(z) * tanHalf;
-      const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.4 + (1 - zr) * 0.6, depthWrite: false });
+      const blurPx = Math.max(0, zr - 0.2) * 10; // further back = more blur
+      const map = blurPx > 0.6 ? blurToTexture(canvas, blurPx) : tex;
+      const mat = new THREE.MeshBasicMaterial({ map, transparent: true, opacity: 0.4 + (1 - zr) * 0.6, depthWrite: false });
       const m = new THREE.Mesh(geo, mat);
       m.position.set(x, y, z);
       m.scale.setScalar(0.75 + (1 - zr) * 0.85);
       this.orb.add(m);
-      this.orbItems.push({ mat, track: t, m, baseY: y, bob: i * 0.7, amp: 0.15 + zr * 0.35 });
+      this.orbItems.push({ mat, track: t, m, baseY: y, bob: i * 0.7, amp: 0.15 + zr * 0.35, blurPx });
     });
     this.orb.position.set(0, 0, 0);
     this.scene.add(this.orb);
@@ -166,9 +178,77 @@ export class CrateDiggerEngine {
           const r = (d && d.results) || [], hit = r.find((x) => x.artworkUrl100) || r[0];
           if (!hit || !hit.artworkUrl100) return;
           const art = hit.artworkUrl100.replace("100x100", "400x400");
-          this.texLoader.load(art, (tex) => { tex.colorSpace = THREE.SRGBColorSpace; it.mat.map?.dispose?.(); it.mat.map = tex; it.mat.needsUpdate = true; }, undefined, () => {});
+          this.texLoader.load(art, (tex) => {
+            let map = tex;
+            if (it.blurPx > 0.6 && tex.image) map = blurToTexture(tex.image, it.blurPx);
+            else tex.colorSpace = THREE.SRGBColorSpace;
+            it.mat.map?.dispose?.(); it.mat.map = map; it.mat.needsUpdate = true;
+          }, undefined, () => {});
         }).catch(() => {});
     });
+  }
+
+  /* ---------- bulge title (homepage) ---------- */
+  _titleDims() {
+    const tanHalf = Math.tan(((62 * Math.PI) / 180) / 2);
+    const vH = 2 * Math.abs(this._titleZ) * tanHalf;
+    const vW = vH * (innerWidth / innerHeight);
+    const planeW = vW * 0.94, planeH = planeW / 4;
+    return { vH, planeW, planeH };
+  }
+  _drawTitle() {
+    const ctx = this._titleCtx;
+    ctx.clearRect(0, 0, 2048, 512);
+    ctx.fillStyle = "#cdd0c7";
+    ctx.font = "800 300px Anton, Inter, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("CRATE DIGGER", 1024, 262);
+    this._titleTex.needsUpdate = true;
+  }
+  _buildTitle() {
+    this._titleZ = -10;
+    const cv = document.createElement("canvas"); cv.width = 2048; cv.height = 512;
+    this._titleCtx = cv.getContext("2d");
+    this._titleTex = new THREE.CanvasTexture(cv);
+    this._titleTex.colorSpace = THREE.SRGBColorSpace; this._titleTex.minFilter = THREE.LinearFilter; this._titleTex.anisotropy = 8;
+    this._drawTitle();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => this._drawTitle());
+    const { planeW, planeH } = this._titleDims();
+    this._planeH = planeH;
+    this.titleMat = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false,
+      uniforms: {
+        uTex: { value: this._titleTex },
+        uMouse: { value: new THREE.Vector2(0.5, 0.5) },
+        uAspect: { value: planeW / planeH },
+        uStrength: { value: 0 },
+        uOpacity: { value: 0 },
+      },
+      vertexShader: "varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
+      fragmentShader: `
+        uniform sampler2D uTex; uniform vec2 uMouse; uniform float uAspect; uniform float uStrength; uniform float uOpacity;
+        varying vec2 vUv;
+        void main(){
+          vec2 uv = vUv;
+          vec2 d = uv - uMouse; d.x *= uAspect;
+          float t = smoothstep(0.32, 0.0, length(d));   // 1 near cursor, 0 past radius
+          uv -= (uv - uMouse) * t * uStrength;           // pull toward cursor = bulge/magnify
+          vec4 c = texture2D(uTex, uv);
+          gl_FragColor = vec4(c.rgb, c.a * uOpacity);
+        }`,
+    });
+    this.title = new THREE.Mesh(new THREE.PlaneGeometry(planeW, planeH), this.titleMat);
+    this.title.position.set(0, 0, this._titleZ);
+    this.scene.add(this.title);
+  }
+  _resizeTitle() {
+    if (!this.title) return;
+    const { planeW, planeH } = this._titleDims();
+    this._planeH = planeH;
+    this.title.geometry.dispose();
+    this.title.geometry = new THREE.PlaneGeometry(planeW, planeH);
+    this.titleMat.uniforms.uAspect.value = planeW / planeH;
   }
 
   /* ---------- timeline (records) ---------- */
@@ -291,7 +371,7 @@ export class CrateDiggerEngine {
     this._onMU = (e) => { if (this._drag) { this._drag = false; if (moved < 6 && this.active && !this.panelOpen) this._pick(e.clientX, e.clientY); } };
     this._onMM = (e) => { if (this._drag) { moved += Math.abs(e.clientX - px) + Math.abs(e.clientY - py); this.look.tx += (e.clientX - px) * 0.0016; this.look.ty = Math.max(-0.5, Math.min(0.5, this.look.ty + (e.clientY - py) * 0.0016)); px = e.clientX; py = e.clientY; } };
     cv.addEventListener("mousedown", this._onMD); addEventListener("mouseup", this._onMU); addEventListener("mousemove", this._onMM);
-    this._onResize = () => { this.camera.aspect = innerWidth / innerHeight; this.camera.updateProjectionMatrix(); this.renderer.setSize(innerWidth, innerHeight); this.composer.setSize(innerWidth, innerHeight); this.bloom.resolution.set(innerWidth, innerHeight); };
+    this._onResize = () => { this.camera.aspect = innerWidth / innerHeight; this.camera.updateProjectionMatrix(); this.renderer.setSize(innerWidth, innerHeight); this.composer.setSize(innerWidth, innerHeight); this.bloom.resolution.set(innerWidth, innerHeight); this._resizeTitle(); };
     addEventListener("resize", this._onResize);
     this._onFirst = () => { if (!this.active && !this.muted) this.startCrackle(); };
     ["pointerdown", "keydown", "touchstart"].forEach((ev) => addEventListener(ev, this._onFirst));
@@ -345,6 +425,15 @@ export class CrateDiggerEngine {
     if (front !== this.lastFront) this.lastFront = front;
     this._showInfo = this.active && front && best < 11;
 
+    if (this.title) {
+      const home = !this.active;
+      const vH = 2 * Math.abs(this._titleZ) * Math.tan(((62 * Math.PI) / 180) / 2);
+      this.titleMat.uniforms.uMouse.value.set(this._mx + 0.5, 0.5 + (-this._my * vH) / this._planeH);
+      const u = this.titleMat.uniforms;
+      u.uStrength.value += ((home ? 0.42 : 0) - u.uStrength.value) * 0.08;
+      u.uOpacity.value += ((home ? 1 : 0) - u.uOpacity.value) * 0.1;
+      this.title.visible = u.uOpacity.value > 0.01;
+    }
     if (this.orb && !this.active) {
       // slow drift + gentle cursor parallax (Getty "Tracing Art" feel)
       this.parX += ((this._mx || 0) - this.parX) * 0.04;
