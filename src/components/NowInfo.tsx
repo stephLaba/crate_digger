@@ -20,14 +20,14 @@ export function NowInfo({ current, show, onOpen }: { current: RecInfo | null; sh
       {show && current && (
         <motion.article
           key="now"
-          className="pointer-events-none fixed left-1/2 top-1/2 z-10 w-[min(90vw,520px)] text-left text-[#e8e6e0]"
+          className="pointer-events-none fixed left-1/2 top-1/2 z-10 w-[min(90vw,620px)] text-center text-[#e8e6e0]"
           initial={{ opacity: 0, x: "-50%", y: "-46%", filter: "blur(10px)" }}
           animate={{ opacity: 1, x: "-50%", y: "-50%", filter: "blur(0px)" }}
           exit={{ opacity: 0, x: "-50%", y: "-50%", filter: "blur(10px)" }}
           transition={{ duration: 0.5, ease: [0.2, 0.7, 0.2, 1] }}
         >
-          {/* 1 — album title (largest tier) */}
-          <h2 className="text-3xl font-extrabold uppercase leading-none tracking-tight">
+          {/* 1 — album title (big display face) */}
+          <h2 className="font-display uppercase" style={{ fontSize: "clamp(42px, 7.5vw, 92px)" }}>
             <StaggerWords text={current.album} stagger={0.06} />
           </h2>
 
@@ -41,7 +41,7 @@ export function NowInfo({ current, show, onOpen }: { current: RecInfo | null; sh
 
           {/* 4 — description */}
           {current.note && (
-            <p className="mt-7 max-w-xs text-xs uppercase leading-relaxed tracking-wider text-white/60">{current.note}</p>
+            <p className="mx-auto mt-7 max-w-xs text-xs uppercase leading-relaxed tracking-wider text-white/60">{current.note}</p>
           )}
 
           {/* 5 — link */}
