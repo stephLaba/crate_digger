@@ -133,26 +133,29 @@ export class CrateDiggerEngine {
   _buildOrb() {
     this.orb = new THREE.Group();
     const tracks = TRACKS.filter((t) => t[1] !== "Today");
-    // wide, evenly dispersed grid with generous whitespace — edges drift off screen
-    const cols = 5, gapX = 11.5, gapY = 9.4;
-    const rows = Math.ceil(tracks.length / cols);
-    const geo = new THREE.PlaneGeometry(3.2, 3.2);
+    // place by SCREEN position so records fill the viewport evenly regardless of depth
+    const cols = 6, rows = Math.ceil(tracks.length / cols);
+    const tanHalf = Math.tan(((62 * Math.PI) / 180) / 2);
+    const aspect = innerWidth / innerHeight;
+    const geo = new THREE.PlaneGeometry(3.0, 3.0);
     tracks.forEach((t, i) => {
       const { tex } = makeCover(t[1], t[2], t[0], HUE, hash(t[1] + t[2]) + i + 1);
       const col = i % cols, row = Math.floor(i / cols);
-      // deterministic pseudo-random depth so some records sit further behind
-      const zr = ((Math.sin(i * 127.1) * 43758.5) % 1 + 1) % 1;
-      const x = (col - (cols - 1) / 2) * gapX + Math.sin(i * 12.9) * 1.1;
-      const y = ((rows - 1) / 2 - row) * gapY + Math.cos(i * 7.7) * 1.0;
-      const z = -6 - zr * 40; // -6 (front) … -46 (deep)
+      const zr = ((Math.sin(i * 127.1) * 43758.5) % 1 + 1) % 1; // deterministic depth
+      const z = -14 - zr * 34; // -14 (front) … -48 (deep)
+      // even grid across normalized screen space, pushed slightly past the edges + jitter
+      const ndcX = ((col + 0.5) / cols * 2 - 1) * 1.2 + Math.sin(i * 9.3) * 0.05;
+      const ndcY = -(((row + 0.5) / rows * 2 - 1) * 1.05) + Math.cos(i * 5.7) * 0.05;
+      const x = ndcX * Math.abs(z) * tanHalf * aspect;
+      const y = ndcY * Math.abs(z) * tanHalf;
       const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.4 + (1 - zr) * 0.6, depthWrite: false });
       const m = new THREE.Mesh(geo, mat);
       m.position.set(x, y, z);
-      m.scale.setScalar(1 + (1 - zr) * 0.4);
+      m.scale.setScalar(0.75 + (1 - zr) * 0.85);
       this.orb.add(m);
       this.orbItems.push({ mat, track: t, m, baseY: y, bob: i * 0.7, amp: 0.15 + zr * 0.35 });
     });
-    this.orb.position.set(0, 0, -4);
+    this.orb.position.set(0, 0, 0);
     this.scene.add(this.orb);
   }
   _fetchOrbArt() {

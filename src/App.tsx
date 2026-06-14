@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CrateDiggerEngine } from "./engine";
-import { Logo } from "./components/Logo";
 import { Landing } from "./components/Landing";
 import { SoundToggle } from "./components/SoundToggle";
 import { Timeline } from "./components/Timeline";
@@ -65,15 +64,12 @@ export default function App() {
 
       {state.active && (
         <>
-          <div className="fixed left-8 top-6 z-10 flex items-center gap-3">
-            <Logo width={38} />
-            <span className="text-[12px] uppercase tracking-[0.18em] text-foreground/55">
-              <b className="font-semibold text-foreground">Crate Digger</b> · Heavy Metal
-            </span>
-            <button onClick={goHome} className="ml-2 rounded-full border border-border px-3 py-1.5 text-[11px] uppercase tracking-[0.1em] text-foreground/60 transition-colors hover:border-foreground/40 hover:text-foreground">
-              ↩ home
-            </button>
-          </div>
+          <button
+            onClick={goHome}
+            className="glass fixed left-8 top-6 z-10 rounded-full px-4 py-2 text-[11px] uppercase tracking-[0.1em] text-foreground/80 transition-colors hover:text-foreground"
+          >
+            ↩ home
+          </button>
 
           <AudioControls paused={paused} volume={volume} onTogglePlay={togglePlay} onVolume={onVolume} />
           <NowInfo current={state.current} show={state.showInfo} onOpen={openDetail} />

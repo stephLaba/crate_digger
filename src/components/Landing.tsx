@@ -12,6 +12,16 @@ export function Landing({ onEnter }: { onEnter: () => void }) {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.6 }}
     >
+      <motion.div
+        className="flex flex-col items-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.1, duration: 0.6 }}
+      >
+        <span className="text-[13px] uppercase tracking-[0.34em] text-foreground">Heavy Metal</span>
+        <span className="my-6 block h-0.5 w-[70px] bg-foreground/60" />
+      </motion.div>
+
       <h1 className="font-display uppercase text-foreground" style={{ fontSize: "clamp(64px, 15vw, 220px)", lineHeight: 0.95 }}>
         <StaggerWords text="Crate Digger" stagger={0.12} delay={0.15} />
       </h1>

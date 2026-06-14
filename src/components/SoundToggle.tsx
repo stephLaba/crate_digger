@@ -8,7 +8,7 @@ export function SoundToggle({ muted, onToggle }: { muted: boolean; onToggle: () 
       onClick={onToggle}
       title="Music on / off"
       className={cn(
-        "fixed right-6 top-5 z-[60] flex h-10 w-10 items-center justify-center rounded-full border border-border bg-white/[0.04] backdrop-blur transition-all hover:bg-white/[0.1]",
+        "glass fixed right-6 top-5 z-[60] flex h-10 w-10 items-center justify-center rounded-full",
         muted ? "text-foreground/40" : "text-foreground/85"
       )}
     >

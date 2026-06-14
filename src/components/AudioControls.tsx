@@ -14,7 +14,7 @@ export function AudioControls({
   onVolume: (v: number) => void;
 }) {
   return (
-    <div className="fixed right-[80px] top-5 z-[60] flex items-center gap-3 rounded-full border border-border bg-white/[0.04] px-3 py-1.5 opacity-60 backdrop-blur transition-opacity hover:opacity-100">
+    <div className="glass fixed right-[80px] top-5 z-[60] flex items-center gap-3 rounded-full px-4 py-2.5">
       <button onClick={onTogglePlay} className="text-foreground/85" title="Play / pause">
         {paused ? <Play size={14} /> : <Pause size={14} />}
       </button>
