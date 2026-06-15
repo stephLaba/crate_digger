@@ -21,11 +21,18 @@ async function wiki(title: string) {
   return j;
 }
 
-export type Bio = { extract: string; thumb?: string; link?: string } | null;
+export type Bio = { extract: string; thumb?: string; image?: string; link?: string } | null;
 export async function fetchBio(artist: string): Promise<Bio> {
   const get = async (t: string) => {
     const j = await wiki(t);
-    return { extract: j.extract as string, thumb: j.thumbnail?.source as string | undefined, link: j.content_urls?.desktop?.page as string | undefined };
+    const thumb = j.thumbnail?.source as string | undefined;
+    // Wikimedia thumbnail URLs are resizable — bump the width for a sharper hero image;
+    // fall back to the full-res original if there's no thumbnail to upscale.
+    const image =
+      (thumb && /\/\d+px-/.test(thumb) ? thumb.replace(/\/\d+px-/, "/1280px-") : undefined) ||
+      (j.originalimage?.source as string | undefined) ||
+      thumb;
+    return { extract: j.extract as string, thumb, image, link: j.content_urls?.desktop?.page as string | undefined };
   };
   try { return await get(artist); } catch { try { return await get(artist + " (band)"); } catch { return null; } }
 }
@@ -39,7 +46,7 @@ export async function fetchDiscography(artist: string): Promise<Album[]> {
     return (d.results || []).map((it) => ({
       name: it.collectionName || "",
       year: it.releaseDate ? it.releaseDate.slice(0, 4) : "",
-      art: (it.artworkUrl100 || "").replace("100x100", "300x300"),
+      art: (it.artworkUrl100 || "").replace("100x100", "600x600"),
     }));
   } catch {
     return [];

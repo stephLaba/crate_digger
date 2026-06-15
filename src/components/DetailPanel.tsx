@@ -16,7 +16,7 @@ export function DetailPanel({ rec, onClose }: { rec: RecInfo; onClose: () => voi
   useEffect(() => {
     let alive = true;
     setBio("loading"); setDisco("loading"); setHero(rec.cover);
-    fetchBio(rec.artist).then((b) => { if (!alive) return; setBio(b); if (b?.thumb) setHero(b.thumb); });
+    fetchBio(rec.artist).then((b) => { if (!alive) return; setBio(b); if (b?.image || b?.thumb) setHero(b.image || b.thumb!); });
     fetchDiscography(rec.artist).then((d) => { if (alive) setDisco(d); });
     return () => { alive = false; };
   }, [rec.artist, rec.cover]);

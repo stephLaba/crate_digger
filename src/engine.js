@@ -10,30 +10,54 @@ const NOW_YEAR = 2026;
 
 // [year, album, artist, note, era] — real heavy-metal milestones (grounded in the Wikipedia history)
 const TRACKS = [
+  [1967, "Are You Experienced", "The Jimi Hendrix Experience", "Virtuosic, distorted — a root of the heavy sound.", "Roots"],
   [1968, "Vincebus Eruptum", "Blue Cheer", "Often called the first true heavy metal recording.", "Proto-metal"],
   [1969, "Led Zeppelin", "Led Zeppelin", "Distorted riffs and wailing vocals set the template.", "Proto-metal"],
   [1970, "Black Sabbath", "Black Sabbath", "Widely accepted as the first heavy metal album.", "The birth · 1970"],
   [1970, "Paranoid", "Black Sabbath", "Dark themes and monster riffs define metal's identity.", "The birth · 1970"],
-  [1972, "Machine Head", "Deep Purple", "“Smoke on the Water” — the third pillar of early metal.", "The birth · 1970"],
+  [1970, "...Very 'Eavy ...Very 'Umble", "Uriah Heep", "British hard rock turns heavier and darker.", "The birth · 1970"],
+  [1972, "Machine Head", "Deep Purple", "“Smoke on the Water” — the third pillar of early metal.", "Early metal"],
   [1976, "Sad Wings of Destiny", "Judas Priest", "Twin guitars shed the blues and forge metal proper.", "Forging the sound"],
+  [1976, "Rising", "Rainbow", "Blackmore + Dio: neoclassical fantasy — the seed of power metal.", "Forging the sound"],
+  [1978, "Van Halen", "Van Halen", "Two-handed tapping reinvents the guitar.", "Forging the sound"],
+  [1979, "Highway to Hell", "AC/DC", "Riff-driven hard rock at full throttle.", "Forging the sound"],
   [1980, "Ace of Spades", "Motörhead", "Punk speed meets metal — NWOBHM's battering ram.", "NWOBHM"],
   [1980, "British Steel", "Judas Priest", "Leaner, faster, anthemic.", "NWOBHM"],
+  [1980, "Wheels of Steel", "Saxon", "NWOBHM workhorses.", "NWOBHM"],
+  [1980, "Lightning to the Nations", "Diamond Head", "NWOBHM cult — Metallica's blueprint.", "NWOBHM"],
   [1982, "The Number of the Beast", "Iron Maiden", "Galloping dual guitars conquer the world.", "NWOBHM"],
+  [1982, "Black Metal", "Venom", "Crude, dark, and it named a whole genre.", "NWOBHM"],
   [1983, "Metal Health", "Quiet Riot", "First glam-metal album to top the US charts.", "Glam metal"],
   [1983, "Shout at the Devil", "Mötley Crüe", "Sunset Strip glam and theatrical excess.", "Glam metal"],
-  [1984, "Rising Force", "Yngwie Malmsteen", "Neoclassical shred redefines the guitar.", "Neoclassical"],
   [1983, "Kill 'Em All", "Metallica", "Thrash is born — speed and aggression.", "Thrash"],
+  [1984, "Rising Force", "Yngwie Malmsteen", "Neoclassical shred redefines the guitar.", "Neoclassical"],
+  [1985, "Seven Churches", "Possessed", "The record that coined “death metal.”", "Extreme begins"],
   [1986, "Master of Puppets", "Metallica", "Thrash's towering, complex peak.", "Thrash"],
   [1986, "Reign in Blood", "Slayer", "Twenty-nine minutes of pure extremity.", "Thrash"],
   [1986, "Peace Sells... but Who's Buying?", "Megadeth", "Technical, political thrash.", "Thrash"],
+  [1986, "Epicus Doomicus Metallicus", "Candlemass", "Epic doom metal, defined.", "Doom metal"],
+  [1987, "Among the Living", "Anthrax", "New York thrash and mosh anthems.", "Thrash"],
+  [1987, "Scream Bloody Gore", "Death", "Death metal's founding document.", "Death metal"],
+  [1987, "Keeper of the Seven Keys, Part I", "Helloween", "European power metal takes flight.", "Power metal"],
+  [1987, "Appetite for Destruction", "Guns N' Roses", "The glam era's dangerous commercial peak.", "Glam metal"],
   [1989, "Altars of Madness", "Morbid Angel", "The blueprint for death metal.", "Death metal"],
   [1990, "Cowboys from Hell", "Pantera", "Thrash tightened into pure groove.", "Groove metal"],
+  [1990, "Left Hand Path", "Entombed", "The buzzsaw sound of Swedish death metal.", "Death metal"],
   [1991, "The Black Album", "Metallica", "Metal conquers the mainstream.", "Metal goes global"],
+  [1992, "Psalm 69", "Ministry", "Industrial metal breaks through.", "Industrial metal"],
+  [1993, "Chaos A.D.", "Sepultura", "Brazilian groove and tribal fury.", "Groove metal"],
   [1994, "De Mysteriis Dom Sathanas", "Mayhem", "Norwegian black metal's defining, infamous record.", "Black metal"],
+  [1994, "Transilvanian Hunger", "Darkthrone", "Raw, lo-fi black metal.", "Black metal"],
   [1994, "Korn", "Korn", "Detuned, hip-hop-inflected — nu metal begins.", "Nu metal"],
+  [1997, "Sehnsucht", "Rammstein", "Pyrotechnic Neue Deutsche Härte.", "Industrial metal"],
+  [1999, "Slipknot", "Slipknot", "Masked, chaotic, a new generation.", "Nu metal"],
   [2000, "Hybrid Theory", "Linkin Park", "Nu metal at its commercial summit.", "Nu metal"],
+  [2001, "Toxicity", "System of a Down", "Art-damaged, political nu metal.", "Nu metal"],
   [2004, "The End of Heartache", "Killswitch Engage", "Metalcore breaks through.", "Metalcore"],
-  [2009, "Animals as Leaders", "Animals as Leaders", "Djent — polyrhythmic and futuristic.", "Djent & beyond"],
+  [2004, "Ashes of the Wake", "Lamb of God", "The new wave of American metal's heavy hitter.", "Metalcore"],
+  [2008, "obZen", "Meshuggah", "Polyrhythmic and crushing — the root of djent.", "Djent & beyond"],
+  [2009, "Animals as Leaders", "Animals as Leaders", "Djent — instrumental and futuristic.", "Djent & beyond"],
+  [2012, "L'Enfant Sauvage", "Gojira", "Modern progressive metal with global reach.", "Modern metal"],
 ];
 const HUE = 0;
 
@@ -142,7 +166,8 @@ export class CrateDiggerEngine {
   /* ---------- homepage gallery: a drifting grid of records with depth ---------- */
   _buildOrb() {
     this.orb = new THREE.Group();
-    const tracks = TRACKS.filter((t) => t[1] !== "Today");
+    // sample a spaced-out subset for the homepage gallery so it doesn't overcrowd
+    const tracks = TRACKS.filter((t) => t[1] !== "Today").filter((_, i) => i % 2 === 0);
     // place by SCREEN position so records fill the viewport evenly regardless of depth
     const cols = 6, rows = Math.ceil(tracks.length / cols);
     const tanHalf = Math.tan(((62 * Math.PI) / 180) / 2);
