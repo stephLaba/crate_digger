@@ -444,11 +444,28 @@ export class CrateDiggerEngine {
 
   /* ---------- input ---------- */
   _bind() {
-    this._onWheel = (e) => { if (!this.active || this.panelOpen) return; if (Math.abs(e.deltaY) < 2) return; this.step(e.deltaY > 0 ? 1 : -1); };
+    // one scroll gesture = exactly one album: accumulate delta, step once, then lock
+    // until the wheel settles (no events for ~150ms) so momentum can't skip albums.
+    this._wheelAccum = 0; this._wheelLock = false; this._wheelTimer = null;
+    this._onWheel = (e) => {
+      if (!this.active || this.panelOpen) return;
+      clearTimeout(this._wheelTimer);
+      this._wheelTimer = setTimeout(() => { this._wheelLock = false; this._wheelAccum = 0; }, 150);
+      if (this._wheelLock) return;
+      this._wheelAccum += e.deltaY;
+      if (Math.abs(this._wheelAccum) > 24) {
+        this.snapTo(this.snapIndex + (this._wheelAccum > 0 ? 1 : -1));
+        this._wheelLock = true; this._wheelAccum = 0;
+      }
+    };
     addEventListener("wheel", this._onWheel, { passive: true });
-    this._touchY = null; this._touchAcc = 0;
-    this._onTS = (e) => { this._touchY = e.touches[0].clientY; this._touchAcc = 0; };
-    this._onTM = (e) => { if (!this.active || this.panelOpen || this._touchY == null) return; this._touchAcc += this._touchY - e.touches[0].clientY; this._touchY = e.touches[0].clientY; if (Math.abs(this._touchAcc) > 46) { this.step(this._touchAcc > 0 ? 1 : -1); this._touchAcc = 0; } };
+    this._touchY = null; this._touchAcc = 0; this._touchLock = false;
+    this._onTS = (e) => { this._touchY = e.touches[0].clientY; this._touchAcc = 0; this._touchLock = false; };
+    this._onTM = (e) => {
+      if (!this.active || this.panelOpen || this._touchY == null) return;
+      this._touchAcc += this._touchY - e.touches[0].clientY; this._touchY = e.touches[0].clientY;
+      if (!this._touchLock && Math.abs(this._touchAcc) > 40) { this.snapTo(this.snapIndex + (this._touchAcc > 0 ? 1 : -1)); this._touchLock = true; this._touchAcc = 0; }
+    };
     addEventListener("touchstart", this._onTS, { passive: true }); addEventListener("touchmove", this._onTM, { passive: true });
     this._onKey = (e) => {
       if ((e.code === "ArrowDown" || e.code === "ArrowRight") && this.active && !this.panelOpen) { this.step(1); e.preventDefault(); }
