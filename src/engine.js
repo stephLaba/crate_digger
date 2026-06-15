@@ -62,6 +62,7 @@ const TRACKS = [
   [2002, "Oceanic", "Isis", "Atmospheric, slow-building post-metal.", "Post-metal"],
   [2004, "Ashes of the Wake", "Lamb of God", "The new wave of American metal's heavy hitter.", "Metalcore"],
   [2004, "Leviathan", "Mastodon", "Progressive sludge — a Moby-Dick concept opus.", "Sludge metal"],
+  [2005, "Black One", "Sunn O)))", "Glacial, monolithic drone metal.", "Drone metal"],
   [2006, "Age of Winters", "The Sword", "Riff-heavy stoner-metal revival.", "Stoner metal"],
   [2007, "Colors", "Between the Buried and Me", "Sprawling progressive metalcore.", "Progressive metal"],
   [2008, "obZen", "Meshuggah", "Polyrhythmic and crushing — the root of djent.", "Djent & beyond"],
@@ -377,8 +378,8 @@ export class CrateDiggerEngine {
   _updateAudio(camZ) {
     const live = this.active && !this.panelOpen && !this.paused;
     let best = Infinity, near = null;
-    for (const r of this.records) { const d = Math.abs(r.group.position.z - (camZ - 3)); if (d < best) { best = d; near = r; } }
-    const target = live && near && near.previewUrl && best < 14 ? near : null;
+    for (const r of this.records) { const d = Math.abs(r.group.position.z - (camZ - this.FOCUS)); if (d < best) { best = d; near = r; } }
+    const target = live && near && near.previewUrl && best < 12 ? near : null;
     for (const r of this.records) {
       const want = r === target, tv = want ? 1 : 0;
       if (want && !r.audio && !this.paused) this._createAudio(r);
