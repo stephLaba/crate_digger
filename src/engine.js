@@ -38,6 +38,7 @@ const TRACKS = [
   [1986, "Epicus Doomicus Metallicus", "Candlemass", "Epic doom metal, defined.", "Doom metal"],
   [1987, "Among the Living", "Anthrax", "New York thrash and mosh anthems.", "Thrash"],
   [1987, "Scream Bloody Gore", "Death", "Death metal's founding document.", "Death metal"],
+  [1987, "Scum", "Napalm Death", "Grindcore is born — extremity distilled.", "Grindcore"],
   [1987, "Keeper of the Seven Keys, Part I", "Helloween", "European power metal takes flight.", "Power metal"],
   [1987, "Appetite for Destruction", "Guns N' Roses", "The glam era's dangerous commercial peak.", "Glam metal"],
   [1989, "Altars of Madness", "Morbid Angel", "The blueprint for death metal.", "Death metal"],
