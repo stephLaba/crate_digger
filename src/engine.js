@@ -320,19 +320,46 @@ export class CrateDiggerEngine {
     this.lastFront = null; this._atEnd = false;
     this._fetchMedia();
   }
+  _applyCover(rec, url) {
+    if (!rec.coverMat || rec.realArt) return;
+    this.texLoader.load(url, (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+      rec.coverMat.map = tex; rec.coverMat.color.set(0xffffff); rec.coverMat.needsUpdate = true; rec.realArt = url;
+    }, undefined, () => { this._wikiCover(rec); });
+  }
+  // fall back to the album's Wikipedia page image when iTunes has no cover
+  _wikiCover(rec) {
+    if (rec.realArt || rec._triedWiki) return; rec._triedWiki = true;
+    const titles = [`${rec.album} (${rec.artist} album)`, `${rec.album} (album)`, rec.album];
+    const tryNext = (i) => {
+      if (i >= titles.length || rec.realArt) return;
+      fetch("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(titles[i]))
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((j) => {
+          if ((j.type || "").includes("disambiguation")) return tryNext(i + 1);
+          const src = j.originalimage?.source || j.thumbnail?.source;
+          if (src) this.texLoader.load(src, (tex) => {
+            tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+            if (rec.coverMat && !rec.realArt) { rec.coverMat.map = tex; rec.coverMat.color.set(0xffffff); rec.coverMat.needsUpdate = true; rec.realArt = src; }
+          }, undefined, () => tryNext(i + 1));
+          else tryNext(i + 1);
+        })
+        .catch(() => tryNext(i + 1));
+    };
+    tryNext(0);
+  }
   _fetchMedia() {
     this.records.forEach((rec, i) => {
       if (isPlaceholder(TRACKS[i])) return;
       const term = encodeURIComponent(rec.artist + " " + rec.album.replace(/[’']/g, ""));
       jsonp("https://itunes.apple.com/search?term=" + term + "&entity=song&limit=6")
         .then((d) => {
-          if (!this.active) return;
           const res = (d && d.results) || [], hit = res.find((x) => x.previewUrl) || res[0];
-          if (!hit) return;
-          if (hit.previewUrl) rec.previewUrl = hit.previewUrl;
-          const art = (hit.artworkUrl100 || "").replace("100x100", "600x600");
-          if (art && rec.coverMat) this.texLoader.load(art, (tex) => { tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8; rec.coverMat.map = tex; rec.coverMat.color.set(0xffffff); rec.coverMat.needsUpdate = true; rec.realArt = art; }, undefined, () => {});
-        }).catch(() => {});
+          if (hit && hit.previewUrl) rec.previewUrl = hit.previewUrl;
+          const art = hit && (hit.artworkUrl100 || "").replace("100x100", "600x600");
+          if (art) this._applyCover(rec, art); else this._wikiCover(rec);
+        })
+        .catch(() => this._wikiCover(rec));
     });
   }
 
