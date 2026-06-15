@@ -44,6 +44,7 @@ const TRACKS = [
   [1990, "Cowboys from Hell", "Pantera", "Thrash tightened into pure groove.", "Groove metal"],
   [1990, "Left Hand Path", "Entombed", "The buzzsaw sound of Swedish death metal.", "Death metal"],
   [1991, "The Black Album", "Metallica", "Metal conquers the mainstream.", "Metal goes global"],
+  [1992, "Tomb of the Mutilated", "Cannibal Corpse", "American death metal at its most extreme.", "Death metal"],
   [1992, "Psalm 69", "Ministry", "Industrial metal breaks through.", "Industrial metal"],
   [1993, "Chaos A.D.", "Sepultura", "Brazilian groove and tribal fury.", "Groove metal"],
   [1994, "De Mysteriis Dom Sathanas", "Mayhem", "Norwegian black metal's defining, infamous record.", "Black metal"],
