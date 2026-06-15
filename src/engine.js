@@ -51,6 +51,7 @@ const TRACKS = [
   [1994, "Korn", "Korn", "Detuned, hip-hop-inflected — nu metal begins.", "Nu metal"],
   [1997, "Sehnsucht", "Rammstein", "Pyrotechnic Neue Deutsche Härte.", "Industrial metal"],
   [1999, "Slipknot", "Slipknot", "Masked, chaotic, a new generation.", "Nu metal"],
+  [2000, "White Pony", "Deftones", "Atmospheric, genre-blurring nu metal.", "Nu metal"],
   [2000, "Hybrid Theory", "Linkin Park", "Nu metal at its commercial summit.", "Nu metal"],
   [2001, "Toxicity", "System of a Down", "Art-damaged, political nu metal.", "Nu metal"],
   [2004, "The End of Heartache", "Killswitch Engage", "Metalcore breaks through.", "Metalcore"],
