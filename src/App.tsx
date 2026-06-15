@@ -11,12 +11,12 @@ import { AudioControls } from "./components/AudioControls";
 import { Cursor } from "./components/Cursor";
 import { playClick, setSfxMuted } from "./lib/sfx";
 
-type EngineState = { active: boolean; atEnd: boolean; showInfo: boolean; current: RecInfo | null; snapIndex: number };
+type EngineState = { active: boolean; atEnd: boolean; showInfo: boolean; playing: boolean; current: RecInfo | null; snapIndex: number };
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<CrateDiggerEngine | null>(null);
-  const [state, setState] = useState<EngineState>({ active: false, atEnd: false, showInfo: false, current: null, snapIndex: 0 });
+  const [state, setState] = useState<EngineState>({ active: false, atEnd: false, showInfo: false, playing: false, current: null, snapIndex: 0 });
   const [ticks, setTicks] = useState<{ year: number; label: string }[]>([]);
   const [detail, setDetail] = useState<RecInfo | null>(null);
   const [muted, setMuted] = useState<boolean>(() => {
@@ -90,7 +90,7 @@ export default function App() {
           </button>
 
           <AudioControls paused={paused} volume={volume} onTogglePlay={togglePlay} onVolume={onVolume} />
-          <NowInfo current={state.current} show={state.showInfo} onOpen={openDetail} />
+          <NowInfo current={state.current} show={state.showInfo} playing={state.playing} muted={muted} onOpen={openDetail} />
           <Timeline ticks={ticks} activeIndex={state.snapIndex} onSelect={(i) => engineRef.current?.snapTo(i)} />
           <EndCard show={state.atEnd} onRestart={restart} onHome={goHome} />
 

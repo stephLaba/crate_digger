@@ -363,7 +363,7 @@ export class CrateDiggerEngine {
       jsonp("https://itunes.apple.com/search?term=" + term + "&entity=song&limit=6")
         .then((d) => {
           const res = (d && d.results) || [], hit = res.find((x) => x.previewUrl) || res[0];
-          if (hit && hit.previewUrl) rec.previewUrl = hit.previewUrl;
+          if (hit && hit.previewUrl) { rec.previewUrl = hit.previewUrl; if (rec === this.lastFront) this.emit(true); }
           const art = hit && (hit.artworkUrl100 || "").replace("100x100", "600x600");
           if (art) this._applyCover(rec, art); else this._wikiCover(rec);
         })
@@ -392,6 +392,7 @@ export class CrateDiggerEngine {
       }
     }
     this.audioLevel = target && target.audio ? target.curVol * this.masterVol * (this.muted ? 0 : 1) : 0;
+    this._playing = this.audioLevel > 0.04;
   }
   _makeCrackleBuffer() {
     const sr = this.aCtx.sampleRate, len = Math.floor(sr * 4), buf = this.aCtx.createBuffer(1, len, sr), d = buf.getChannelData(0);
@@ -474,7 +475,7 @@ export class CrateDiggerEngine {
     const hit = this.ray.intersectObjects(this.pickMeshes, false);
     if (hit.length) this.onOpen(this._recInfo(hit[0].object.userData.rec));
   }
-  _recInfo(r) { return { idx: r.idx, year: r.year, yearLabel: r.year >= 2024 ? `${NOW_YEAR} · now` : String(r.year), album: r.album, artist: r.artist, era: r.era, note: r.note, cover: r.realArt || r.coverURL, isPlaceholder: isPlaceholder(TRACKS[r.idx]) }; }
+  _recInfo(r) { return { idx: r.idx, year: r.year, yearLabel: r.year >= 2024 ? `${NOW_YEAR} · now` : String(r.year), album: r.album, artist: r.artist, era: r.era, note: r.note, cover: r.realArt || r.coverURL, isPlaceholder: isPlaceholder(TRACKS[r.idx]), hasPreview: !!r.previewUrl }; }
 
   /* ---------- state bridge ---------- */
   current() { return this.lastFront ? this._recInfo(this.lastFront) : null; }
@@ -484,13 +485,14 @@ export class CrateDiggerEngine {
       active: this.active,
       atEnd: !!this._atEnd && Math.abs(this.travelTarget - this.travelYear) < 1.2,
       showInfo: this._showInfo || false,
+      playing: this.active && !!this._playing,
       key: cur ? cur.album + cur.year : "",
       snapIndex: this.snapIndex,
     };
     const L = this._last;
-    if (force || snap.active !== L.active || snap.atEnd !== L.atEnd || snap.showInfo !== L.showInfo || snap.key !== L.key || snap.snapIndex !== L.snapIndex) {
+    if (force || snap.active !== L.active || snap.atEnd !== L.atEnd || snap.showInfo !== L.showInfo || snap.playing !== L.playing || snap.key !== L.key || snap.snapIndex !== L.snapIndex) {
       this._last = snap;
-      this.onState({ active: snap.active, atEnd: snap.atEnd, showInfo: snap.showInfo, current: cur, snapIndex: snap.snapIndex });
+      this.onState({ active: snap.active, atEnd: snap.atEnd, showInfo: snap.showInfo, playing: snap.playing, current: cur, snapIndex: snap.snapIndex });
     }
   }
 
