@@ -30,6 +30,7 @@ export default function App() {
     const eng = new CrateDiggerEngine(canvasRef.current!, {
       onState: (s: EngineState) => setState(s),
       onOpen: (rec: RecInfo) => { playClick(); eng.setPanelOpen(true); setDetail(rec); },
+      onTicks: (tk: { year: number; label: string }[]) => setTicks(tk),
     });
     engineRef.current = eng;
     eng.setMuted(muted); setSfxMuted(muted); // apply persisted mute (survives navigation + reload)

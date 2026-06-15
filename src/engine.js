@@ -125,9 +125,10 @@ function jsonp(url) {
 }
 
 export class CrateDiggerEngine {
-  constructor(canvas, { onState, onOpen } = {}) {
+  constructor(canvas, { onState, onOpen, onTicks } = {}) {
     this.onState = onState || (() => {});
     this.onOpen = onOpen || (() => {});
+    this.onTicks = onTicks || (() => {});
     this.active = false; this.paused = false; this.muted = false; this.masterVol = 0.65; this.panelOpen = false;
     this.minYear = 1968; this.maxYear = NOW_YEAR; this.SPACING = 14; this.FOCUS = 10;
     this.travelYear = this.minYear; this.travelTarget = this.minYear;
@@ -136,6 +137,7 @@ export class CrateDiggerEngine {
     this._last = {};
     this.aCtx = null; this.crackleNode = null; this.audioLevel = 0; this.pulse = 0;
     this.orbItems = []; this._mx = 0; this._my = 0; this.parX = 0; this.parY = 0;
+    this.endItems = []; this.endSphere = null; this._assembly = 0;
 
     const scene = new THREE.Scene(); scene.background = null; scene.fog = new THREE.FogExp2(0x0d0d0c, 0.012);
     const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.1, 1200);
@@ -289,6 +291,7 @@ export class CrateDiggerEngine {
     this._stopAllAudio();
     this.field.traverse((o) => { if (o.material) { const m = Array.isArray(o.material) ? o.material : [o.material]; m.forEach((mm) => { mm.map?.dispose?.(); mm.dispose?.(); }); } });
     this.scene.remove(this.field); this.field = new THREE.Group(); this.scene.add(this.field);
+    if (this.endSphere) { this.scene.remove(this.endSphere); this.endSphere = null; this.endItems = []; this._assembly = 0; }
     this.records = []; this.pickMeshes = [];
 
     for (let d = Math.ceil(this.minYear / 10) * 10; d <= 2020; d += 10) {
@@ -317,16 +320,62 @@ export class CrateDiggerEngine {
       this.records.push(rec);
       if (sleeve) { sleeve.userData.rec = rec; this.pickMeshes.push(sleeve); }
     });
-    this.snapOrder = this.records.slice().sort((a, b) => b.group.position.z - a.group.position.z);
-    // a virtual "end" stop sits just past the last record (snapIndex === snapOrder.length)
-    const last = this.snapOrder[this.snapOrder.length - 1];
-    this.endYear = last.snapYear + (this.FOCUS + 6) / this.SPACING;
-    this.maxYear = Math.max(NOW_YEAR, this.endYear);
-    // start at the very beginning of the timeline (the first year), before any album is selected;
-    // the first scroll brings you onto the first record.
-    this.snapIndex = -1; this.travelTarget = this.minYear; this.travelYear = this.minYear;
-    this.lastFront = null; this._atEnd = false;
+    this._rebuildNav(true);
     this._fetchMedia();
+    // after media has had time to load, drop any record missing a preview or a cover
+    clearTimeout(this._pruneTimer);
+    this._pruneTimer = setTimeout(() => this._pruneTimeline(), 6000);
+  }
+  // (re)build snap navigation, end-card position, and the end sphere from the visible records
+  _rebuildNav(reset) {
+    const prevRec = this.snapOrder && this.snapIndex >= 0 && this.snapIndex < this.snapOrder.length ? this.snapOrder[this.snapIndex] : null;
+    const vis = this.records.filter((r) => !r.hidden);
+    this.snapOrder = vis.slice().sort((a, b) => b.group.position.z - a.group.position.z);
+    const last = this.snapOrder[this.snapOrder.length - 1];
+    this.endYear = last ? last.snapYear + (this.FOCUS + 6) / this.SPACING : this.minYear + 2;
+    this.maxYear = Math.max(NOW_YEAR, this.endYear);
+    this.endCamZ = this.yearToZ(this.endYear) + 8;
+    this._buildEndSphere(vis);
+    if (reset) {
+      // start at the first year, before any album is selected
+      this.snapIndex = -1; this.travelTarget = this.minYear; this.travelYear = this.minYear; this.lastFront = null;
+    } else {
+      const ni = prevRec ? this.snapOrder.indexOf(prevRec) : -1; // keep the user on the same record after a prune
+      this.snapIndex = ni >= 0 ? ni : Math.max(-1, Math.min(this.snapIndex, this.snapOrder.length - 1));
+    }
+    this._atEnd = false;
+    this.onTicks(this.getTicks());
+  }
+  _pruneTimeline() {
+    if (!this.active) return;
+    const valid = this.records.filter((r) => r.previewUrl && r.realArt);
+    if (valid.length < 8) return; // likely a network/API issue — don't wipe the timeline
+    let changed = false;
+    for (const r of this.records) {
+      if (r.hidden) continue;
+      if (!r.previewUrl || !r.realArt) { r.hidden = true; if (r.group) r.group.visible = false; changed = true; }
+    }
+    if (changed) this._rebuildNav(false);
+  }
+  _buildEndSphere(list) {
+    if (this.endSphere) this.scene.remove(this.endSphere);
+    this.endItems = [];
+    this.endSphere = new THREE.Group();
+    const N = Math.max(1, list.length), geo = new THREE.PlaneGeometry(2.6, 2.6), up = new THREE.Vector3(0, 0, 1);
+    list.forEach((rec, i) => {
+      const map = rec.coverMat ? rec.coverMat.map : null;
+      const mat = new THREE.MeshBasicMaterial({ map, color: map ? 0xffffff : 0x23232a, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
+      const m = new THREE.Mesh(geo, mat);
+      const y = 1 - (i / N) * 2, r = Math.sqrt(Math.max(0, 1 - y * y)), phi = i * 2.399963;
+      const dir = new THREE.Vector3(Math.cos(phi) * r, y, Math.sin(phi) * r).normalize();
+      m.quaternion.setFromUnitVectors(up, dir);
+      const R = 7 + (((Math.sin(i * 91.7) * 43758.5) % 1 + 1) % 1) * 5; // depth variation
+      this.endItems.push({ mat, dir, R, m, rec });
+      this.endSphere.add(m);
+    });
+    this.endSphere.position.set(0, 0, this.endCamZ - 18);
+    this.endSphere.visible = false;
+    this.scene.add(this.endSphere);
   }
   _applyCover(rec, url) {
     if (!rec.coverMat || rec.realArt) return;
@@ -378,7 +427,7 @@ export class CrateDiggerEngine {
   _updateAudio(camZ) {
     const live = this.active && !this.panelOpen && !this.paused;
     let best = Infinity, near = null;
-    for (const r of this.records) { const d = Math.abs(r.group.position.z - (camZ - this.FOCUS)); if (d < best) { best = d; near = r; } }
+    for (const r of this.records) { if (r.hidden) continue; const d = Math.abs(r.group.position.z - (camZ - this.FOCUS)); if (d < best) { best = d; near = r; } }
     const target = live && near && near.previewUrl && best < 12 ? near : null;
     for (const r of this.records) {
       const want = r === target, tv = want ? 1 : 0;
@@ -531,6 +580,7 @@ export class CrateDiggerEngine {
     // focus and fade out before the camera passes through them — so you always see the one you land on.
     const F = this.FOCUS;
     for (const r of this.records) {
+      if (r.hidden) continue;
       const focusDist = Math.abs(r.group.position.z - (camZ - F));
       const sc = focusDist < 9 ? 1 + (9 - focusDist) * 0.04 : 1;
       r.group.scale.setScalar(THREE.MathUtils.lerp(r.group.scale.x, sc, 0.14));
@@ -567,6 +617,24 @@ export class CrateDiggerEngine {
       this.orb.position.y = Math.cos(t * 0.062) * 1.5 + this.parY * 3;
       this.orb.rotation.z = Math.sin(t * 0.05) * 0.015;
       for (const it of this.orbItems) it.m.position.y = it.baseY + Math.sin(t * 0.5 + it.bob) * it.amp;
+    }
+    // end-of-timeline sphere: albums twirl out from the center into a slowly rotating sphere
+    if (this.endSphere) {
+      this._assembly += ((this._atEnd ? 1 : 0) - this._assembly) * 0.06;
+      const a = this._assembly;
+      this.endSphere.visible = a > 0.01;
+      if (this.endSphere.visible) {
+        const e = a * a * (3 - 2 * a);
+        for (const it of this.endItems) {
+          it.m.position.copy(it.dir).multiplyScalar(it.R * e);
+          it.m.scale.setScalar(0.3 + 0.7 * e);
+          it.mat.opacity = e;
+          const map = it.rec.coverMat ? it.rec.coverMat.map : null;
+          if (it.mat.map !== map) { it.mat.map = map; it.mat.color.set(map ? 0xffffff : 0x23232a); it.mat.needsUpdate = true; }
+        }
+        this.endSphere.rotation.y = t * 0.12 + (1 - e) * 5; // extra spin unwinds as it assembles
+        this.endSphere.rotation.x = Math.sin(t * 0.1) * 0.12;
+      }
     }
     this.bloom.strength = this.BLOOM_BASE + this.pulse * 0.25;
     this._updateAudio(camZ);
