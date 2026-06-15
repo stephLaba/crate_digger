@@ -54,12 +54,10 @@ const TRACKS = [
   [1997, "Sehnsucht", "Rammstein", "Pyrotechnic Neue Deutsche Härte.", "Industrial metal"],
   [1999, "Slipknot", "Slipknot", "Masked, chaotic, a new generation.", "Nu metal"],
   [2000, "White Pony", "Deftones", "Atmospheric, genre-blurring nu metal.", "Nu metal"],
-  [2000, "Hybrid Theory", "Linkin Park", "Nu metal at its commercial summit.", "Nu metal"],
   [2001, "Toxicity", "System of a Down", "Art-damaged, political nu metal.", "Nu metal"],
-  [2004, "The End of Heartache", "Killswitch Engage", "Metalcore breaks through.", "Metalcore"],
+  [2001, "Jane Doe", "Converge", "A mathcore landmark — chaotic, technical metalcore.", "Metalcore"],
   [2004, "Ashes of the Wake", "Lamb of God", "The new wave of American metal's heavy hitter.", "Metalcore"],
   [2008, "obZen", "Meshuggah", "Polyrhythmic and crushing — the root of djent.", "Djent & beyond"],
-  [2009, "Animals as Leaders", "Animals as Leaders", "Djent — instrumental and futuristic.", "Djent & beyond"],
   [2012, "L'Enfant Sauvage", "Gojira", "Modern progressive metal with global reach.", "Modern metal"],
 ];
 const HUE = 0;
