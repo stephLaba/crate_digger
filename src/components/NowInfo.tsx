@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { StaggerWords } from "./StaggerWords";
+import { Visualizer } from "./Visualizer";
 
 export type RecInfo = {
   idx: number;
@@ -18,14 +19,14 @@ export type RecInfo = {
 export function NowInfo({
   current,
   show,
-  playing,
   muted,
+  engineRef,
   onOpen,
 }: {
   current: RecInfo | null;
   show: boolean;
-  playing: boolean;
   muted: boolean;
+  engineRef: { current: any };
   onOpen: () => void;
 }) {
   return (
@@ -39,20 +40,16 @@ export function NowInfo({
           exit={{ opacity: 0, x: "-50%", y: "-50%", filter: "blur(10px)" }}
           transition={{ duration: 0.5, ease: [0.2, 0.7, 0.2, 1] }}
         >
-          {/* now-playing status */}
-          <p className="mb-3 flex items-center justify-center gap-2 text-[10px] uppercase tracking-[0.2em]">
-            {playing ? (
-              <span className="flex items-center gap-1.5" style={{ color: "hsl(var(--accent))" }}>
-                <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-current" /> Now playing
-              </span>
-            ) : muted ? (
-              <span className="text-white/35">♪ Muted</span>
+          {/* line visualizer — reacts to the playing audio (or muted / no-preview status) */}
+          <div className="mb-3 flex h-5 items-center justify-center">
+            {muted ? (
+              <span className="text-[10px] uppercase tracking-[0.2em] text-white/35">♪ Muted</span>
             ) : !current.isPlaceholder && !current.hasPreview ? (
-              <span className="text-white/30">No preview</span>
+              <span className="text-[10px] uppercase tracking-[0.2em] text-white/30">No preview</span>
             ) : (
-              <span className="text-white/25">♪ …</span>
+              <Visualizer engineRef={engineRef} />
             )}
-          </p>
+          </div>
 
           {/* meta line: genre · year (above the album name) */}
           <p className="mb-4 text-xs uppercase tracking-widest text-white/40">

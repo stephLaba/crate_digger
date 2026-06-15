@@ -91,7 +91,7 @@ export default function App() {
           </button>
 
           <AudioControls paused={paused} volume={volume} onTogglePlay={togglePlay} onVolume={onVolume} />
-          <NowInfo current={state.current} show={state.showInfo} playing={state.playing} muted={muted} onOpen={openDetail} />
+          <NowInfo current={state.current} show={state.showInfo} muted={muted} engineRef={engineRef} onOpen={openDetail} />
           <Timeline ticks={ticks} activeIndex={state.snapIndex} onSelect={(i) => engineRef.current?.snapTo(i)} />
           <EndCard show={state.atEnd} onRestart={restart} onHome={goHome} />
 
